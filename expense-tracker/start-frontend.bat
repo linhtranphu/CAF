@@ -1,6 +1,5 @@
 @echo off
-echo Starting Expense Tracker Frontend...
+echo Starting Vue.js Frontend...
 cd frontend
-echo Frontend is running at http://localhost:3000
-python -m http.server 3000
-pause
+npm install
+npm run dev

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Expense Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-width: 400px; width: 90%; }
+        h1 { color: #333; margin-bottom: 30px; text-align: center; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        .login-btn { background: #4285f4; color: white; padding: 12px 24px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 10px; }
+        .login-btn:hover { background: #357ae8; }
+        .error { color: #f44336; margin-top: 10px; text-align: center; }
+        .users-info { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; }
+        .users-info h4 { margin-bottom: 10px; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>💰 Expense Tracker</h1>
+        
+        <div class="users-info">
+            <h4>👥 Demo Users:</h4>
+            <p><strong>admin</strong> / admin123 (Admin)</p>
+            <p><strong>linh</strong> / linh123 (User)</p>
+            <p><strong>toan</strong> / toan123 (User)</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Tên đăng nhập:</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Mật khẩu:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">🔐 Đăng nhập</button>
+            <div id="error" class="error"></div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            
+            fetch('/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.text(); // Get as text first
+            })
+            .then(text => {
+                console.log('Raw response:', text);
+                try {
+                    const data = JSON.parse(text);
+                    if (data.message) {
+                        window.location.href = '/admin';
+                    } else {
+                        errorDiv.textContent = data.error || 'Đăng nhập thất bại';
+                    }
+                } catch (e) {
+                    console.error('JSON parse error:', e);
+                    errorDiv.textContent = 'Server response error: ' + text.substring(0, 100);
+                }
+            })
+            .catch(error => {
+                errorDiv.textContent = 'Lỗi kết nối: ' + error;
+            });
+        });
+    </script>
+</body>
+</html>

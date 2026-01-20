@@ -8,7 +8,7 @@ import (
 
 	"expense-tracker/application/services"
 	"expense-tracker/infrastructure/ai"
-	"expense-tracker/infrastructure/sheets"
+	"expense-tracker/infrastructure/mongodb"
 	"expense-tracker/interfaces/http"
 )
 
@@ -31,6 +31,7 @@ func loadEnv() error {
 			key := strings.TrimSpace(parts[0])
 			value := strings.Trim(strings.TrimSpace(parts[1]), "\"")
 			os.Setenv(key, value)
+			log.Printf("[ENV] Loaded: %s", key)
 		}
 	}
 
@@ -44,21 +45,30 @@ func main() {
 	}
 
 	// Infrastructure
-	sheetsRepo, err := sheets.NewRepository()
+	mongoRepo, err := mongodb.NewRepository()
 	if err != nil {
-		log.Fatal("Failed to create sheets repository:", err)
+		log.Fatal("Failed to create mongodb repository:", err)
 	}
+	defer mongoRepo.Close()
 
 	parser := ai.NewMessageParser()
 
 	// Application
-	expenseService := services.NewExpenseService(sheetsRepo, parser)
+	expenseService := services.NewExpenseService(mongoRepo, parser)
 
 	// Interface
 	expenseHandler := http.NewExpenseHandler(expenseService)
-	router := http.NewRouter(expenseHandler)
+	adminHandler := http.NewAdminHandler(expenseService)
+	router := http.NewRouter(expenseHandler, adminHandler)
 
 	log.Println("Server starting on :8081")
+	log.Println("Database: MongoDB (localhost:27017)")
+	log.Println("Admin panel: http://localhost:8081/admin")
+	if os.Getenv("OPENAI_API_KEY") != "" {
+		log.Println("AI Parser: OpenAI GPT-3.5 ✅")
+	} else {
+		log.Println("AI Parser: Fallback (simple parsing)")
+	}
 	if err := router.Run(":8081"); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
