@@ -14,6 +14,9 @@ RUN go mod download
 # Copy toàn bộ mã nguồn
 COPY . .
 
+# Cập nhật go.mod để tương thích với Go 1.24
+RUN go mod tidy
+
 # Build ứng dụng
 RUN CGO_ENABLED=0 GOOS=linux go build -o main cmd/main.go
 
