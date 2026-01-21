@@ -23,6 +23,7 @@ ssh -i your-key.pem ec2-user@your-ec2-ip
 curl -O https://raw.githubusercontent.com/your-repo/expense-tracker/main/aws/deploy-simple.sh
 chmod +x deploy-simple.sh
 ./deploy-simple.sh
+# Enter your GEMINI_API_KEY when prompted
 ```
 
 ### Option B: Manual Deploy (If Docker Compose fails)
@@ -34,6 +35,7 @@ cd expense-tracker
 # Run manual deploy
 chmod +x aws/deploy-manual.sh
 ./aws/deploy-manual.sh
+# Enter your GEMINI_API_KEY when prompted
 ```
 
 ### Option C: Step by Step Manual
@@ -48,11 +50,11 @@ sed -i 's/go 1.24/go 1.21/' go.mod
 # 3. Build Backend
 docker build -t expense-backend .
 
-# 4. Start Backend
+# 4. Start Backend (replace YOUR_GEMINI_API_KEY with actual key)
 docker run -d --name expense-backend -p 8081:8081 \
   -e PORT=8081 \
   -e MONGODB_URI=mongodb://172.17.0.1:27017 \
-  -e GEMINI_API_KEY=AIzaSyD_X1AdGqKXQ0EETgC80BDWYt8zKuSyviM \
+  -e GEMINI_API_KEY=YOUR_GEMINI_API_KEY \
   -e SESSION_SECRET=expense-tracker-secret-123 \
   expense-backend
 

@@ -3,6 +3,13 @@ set -e
 
 echo "🚀 Manual Docker Deployment..."
 
+# Get GEMINI API Key
+read -p "Enter GEMINI_API_KEY: " GEMINI_API_KEY
+if [ -z "$GEMINI_API_KEY" ]; then
+    echo "❌ GEMINI_API_KEY is required!"
+    exit 1
+fi
+
 # Stop existing containers
 docker stop expense-mongodb expense-backend expense-frontend 2>/dev/null || true
 docker rm expense-mongodb expense-backend expense-frontend 2>/dev/null || true
@@ -12,7 +19,7 @@ echo "Starting MongoDB..."
 docker run -d --name expense-mongodb \
   -p 27017:27017 \
   -v mongodb_data:/data/db \
-  mongo:7
+  public.ecr.aws/docker/library/mongo:7
 
 # Wait for MongoDB
 sleep 10
@@ -25,7 +32,7 @@ docker run -d --name expense-backend \
   -p 8081:8081 \
   -e PORT=8081 \
   -e MONGODB_URI=mongodb://$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' expense-mongodb):27017 \
-  -e GEMINI_API_KEY=AIzaSyD_X1AdGqKXQ0EETgC80BDWYt8zKuSyviM \
+  -e GEMINI_API_KEY=$GEMINI_API_KEY \
   -e SESSION_SECRET=expense-tracker-secret-$(date +%s) \
   expense-backend
 

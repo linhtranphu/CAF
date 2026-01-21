@@ -1,5 +1,8 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS builder
+
+# Install Go
+RUN yum update -y && yum install -y golang git
 
 WORKDIR /app
 
@@ -14,9 +17,9 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o main cmd/main.go
 
 # Production stage
-FROM alpine:latest
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN yum update -y && yum install -y ca-certificates tzdata && yum clean all
 WORKDIR /root/
 
 # Copy binary and templates
