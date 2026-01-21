@@ -25,7 +25,7 @@
         </div>
         
         <div class="admin-link">
-          <a href="http://localhost:8081/admin" target="_blank" class="admin-btn">
+          <a href="/admin" target="_blank" class="admin-btn">
             📊 Xem báo cáo Admin
           </a>
         </div>
@@ -61,7 +61,7 @@ export default {
       
       this.loading = true;
       try {
-        const response = await fetch('http://localhost:8081/api/expense', {
+        const response = await fetch('/api/expense', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ export default {
     
     async logout() {
       try {
-        await fetch('http://localhost:8081/auth/logout', {
+        await fetch('/auth/logout', {
           credentials: 'include'
         });
       } catch (error) {

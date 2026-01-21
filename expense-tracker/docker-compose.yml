@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mongodb:
-    image: mongo:7
+    image: public.ecr.aws/docker/library/mongo:7
     container_name: expense-mongodb
     restart: unless-stopped
     ports:
@@ -11,6 +11,8 @@ services:
       - mongodb_data:/data/db
     environment:
       MONGO_INITDB_DATABASE: expense_tracker
+    networks:
+      - expense-network
 
   backend:
     build: ./backend
@@ -25,8 +27,8 @@ services:
       - SESSION_SECRET=${SESSION_SECRET}
     depends_on:
       - mongodb
-    volumes:
-      - ./backend/.env:/root/.env
+    networks:
+      - expense-network
 
   frontend:
     build: ./frontend
@@ -36,6 +38,12 @@ services:
       - "3000:80"
     depends_on:
       - backend
+    networks:
+      - expense-network
 
 volumes:
   mongodb_data:
+
+networks:
+  expense-network:
+    driver: bridge
