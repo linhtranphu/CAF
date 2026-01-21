@@ -25,7 +25,7 @@
         </div>
         
         <div class="admin-link">
-          <a :href="`http://${window.location.hostname}:8081/admin`" target="_blank" class="admin-btn">
+          <a :href="`${backendUrl}/admin`" target="_blank" class="admin-btn">
             📊 Xem báo cáo Admin
           </a>
         </div>
@@ -47,7 +47,31 @@ export default {
       isLoggedIn: false,
       username: '',
       newExpense: '',
-      loading: false
+      loading: false,
+      backendUrl: ''
+    }
+  },
+  async mounted() {
+    // Get public IP using IMDSv2
+    try {
+      const tokenResponse = await fetch('http://169.254.169.254/latest/api/token', {
+        method: 'PUT',
+        headers: {
+          'X-aws-ec2-metadata-token-ttl-seconds': '21600'
+        }
+      });
+      const token = await tokenResponse.text();
+      
+      const ipResponse = await fetch('http://169.254.169.254/latest/meta-data/public-ipv4', {
+        headers: {
+          'X-aws-ec2-metadata-token': token
+        }
+      });
+      const publicIp = await ipResponse.text();
+      this.backendUrl = `http://${publicIp}:8081`;
+    } catch (error) {
+      // Fallback to window.location.hostname
+      this.backendUrl = `http://${window.location.hostname}:8081`;
     }
   },
   methods: {
@@ -61,7 +85,7 @@ export default {
       
       this.loading = true;
       try {
-        const response = await fetch(`http://${window.location.hostname}:8081/api/expense`, {
+        const response = await fetch(`${this.backendUrl}/api/expense`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -89,7 +113,7 @@ export default {
     
     async logout() {
       try {
-        await fetch(`http://${window.location.hostname}:8081/auth/logout`, {
+        await fetch(`${this.backendUrl}/auth/logout`, {
           credentials: 'include'
         });
       } catch (error) {

@@ -51,7 +51,31 @@ export default {
       username: '',
       password: '',
       loading: false,
-      error: ''
+      error: '',
+      backendUrl: ''
+    }
+  },
+  async mounted() {
+    // Get public IP using IMDSv2
+    try {
+      const tokenResponse = await fetch('http://169.254.169.254/latest/api/token', {
+        method: 'PUT',
+        headers: {
+          'X-aws-ec2-metadata-token-ttl-seconds': '21600'
+        }
+      });
+      const token = await tokenResponse.text();
+      
+      const ipResponse = await fetch('http://169.254.169.254/latest/meta-data/public-ipv4', {
+        headers: {
+          'X-aws-ec2-metadata-token': token
+        }
+      });
+      const publicIp = await ipResponse.text();
+      this.backendUrl = `http://${publicIp}:8081`;
+    } catch (error) {
+      // Fallback to window.location.hostname
+      this.backendUrl = `http://${window.location.hostname}:8081`;
     }
   },
   methods: {
@@ -60,7 +84,7 @@ export default {
       this.error = '';
       
       try {
-        const response = await fetch(`http://${window.location.hostname}:8081/auth/login`, {
+        const response = await fetch(`${this.backendUrl}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

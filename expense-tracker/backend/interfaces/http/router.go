@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -58,7 +59,11 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	
 	r.Use(LoggerMiddleware())
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOriginFunc: func(origin string) bool {
+			// Allow localhost and any IP on port 3000
+			return origin == "http://localhost:3000" || 
+				   strings.HasSuffix(origin, ":3000")
+		},
 		AllowMethods:     []string{"GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
