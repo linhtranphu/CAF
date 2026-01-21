@@ -39,10 +39,22 @@ func loadEnv() error {
 }
 
 func main() {
-	// Load environment variables
+	// Load environment variables from file if exists
 	if err := loadEnv(); err != nil {
 		log.Printf("Warning: Could not load .env file: %v", err)
+		log.Println("Using environment variables from system")
 	}
+
+	// Set default values if not provided
+	if os.Getenv("MONGODB_URI") == "" {
+		os.Setenv("MONGODB_URI", "mongodb://localhost:27017")
+	}
+	if os.Getenv("PORT") == "" {
+		os.Setenv("PORT", "8081")
+	}
+
+	log.Printf("MongoDB URI: %s", os.Getenv("MONGODB_URI"))
+	log.Printf("Port: %s", os.Getenv("PORT"))
 
 	// Infrastructure
 	mongoRepo, err := mongodb.NewRepository()
@@ -61,15 +73,22 @@ func main() {
 	adminHandler := http.NewAdminHandler(expenseService)
 	router := http.NewRouter(expenseHandler, adminHandler)
 
-	log.Println("Server starting on :8081")
-	log.Println("Database: MongoDB (localhost:27017)")
-	log.Println("Admin panel: http://localhost:8081/admin")
-	if os.Getenv("OPENAI_API_KEY") != "" {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8081"
+	}
+
+	log.Printf("Server starting on :%s", port)
+	log.Printf("Database: %s", os.Getenv("MONGODB_URI"))
+	log.Printf("Admin panel: http://localhost:%s/admin", port)
+	if os.Getenv("GEMINI_API_KEY") != "" {
+		log.Println("AI Parser: Gemini ✅")
+	} else if os.Getenv("OPENAI_API_KEY") != "" {
 		log.Println("AI Parser: OpenAI GPT-3.5 ✅")
 	} else {
 		log.Println("AI Parser: Fallback (simple parsing)")
 	}
-	if err := router.Run(":8081"); err != nil {
+	if err := router.Run(":" + port); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
