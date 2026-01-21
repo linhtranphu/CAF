@@ -58,18 +58,26 @@ export default {
         method: 'PUT',
         headers: {
           'X-aws-ec2-metadata-token-ttl-seconds': '21600'
-        }
+        },
+        timeout: 5000
       });
+      
+      if (!tokenResponse.ok) throw new Error('Token request failed');
       const token = await tokenResponse.text();
       
       const ipResponse = await fetch('http://169.254.169.254/latest/meta-data/public-ipv4', {
         headers: {
           'X-aws-ec2-metadata-token': token
-        }
+        },
+        timeout: 5000
       });
+      
+      if (!ipResponse.ok) throw new Error('IP request failed');
       const publicIp = await ipResponse.text();
       this.backendUrl = `http://${publicIp}:8081`;
+      console.log('Backend URL:', this.backendUrl);
     } catch (error) {
+      console.warn('IMDSv2 failed, using fallback:', error);
       // Fallback to window.location.hostname
       this.backendUrl = `http://${window.location.hostname}:8081`;
     }
@@ -85,6 +93,10 @@ export default {
       
       this.loading = true;
       try {
+        if (!this.backendUrl) {
+          throw new Error('Backend URL not ready');
+        }
+        
         const response = await fetch(`${this.backendUrl}/api/expense`, {
           method: 'POST',
           headers: {
