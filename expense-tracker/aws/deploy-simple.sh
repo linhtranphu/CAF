@@ -23,9 +23,11 @@ docker rm expense-mongodb expense-backend expense-frontend 2>/dev/null || true
 
 # Build images
 echo "Building backend..."
-# Fix go.mod version first
-sed -i 's/go 1.24.0/go 1.23/' backend/go.mod
-sed -i 's/go 1.22/go 1.23/' backend/go.mod
+# Fix go.mod version first (if needed)
+if [ -f "backend/go.mod" ]; then
+    sed -i 's/go 1.24.0/go 1.23/' backend/go.mod
+    sed -i 's/go 1.22/go 1.23/' backend/go.mod
+fi
 docker build -t expense-backend ./backend
 
 echo "Building frontend..."
