@@ -55,11 +55,43 @@ export default {
     // Simple fallback - use window.location.hostname
     this.backendUrl = `http://${window.location.hostname}:8081`;
     console.log('Backend URL:', this.backendUrl);
+    
+    // Check if user is already logged in
+    await this.checkLoginStatus();
   },
   methods: {
     handleLoginSuccess(username) {
       this.isLoggedIn = true;
       this.username = username;
+      // Save login state
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('username', username);
+    },
+    
+    async checkLoginStatus() {
+      // Check localStorage first
+      const savedLogin = localStorage.getItem('isLoggedIn');
+      const savedUsername = localStorage.getItem('username');
+      
+      if (savedLogin === 'true' && savedUsername) {
+        // Verify with server
+        try {
+          const response = await fetch(`${this.backendUrl}/api/health`, {
+            credentials: 'include'
+          });
+          if (response.ok) {
+            this.isLoggedIn = true;
+            this.username = savedUsername;
+            return;
+          }
+        } catch (error) {
+          console.log('Session check failed:', error);
+        }
+      }
+      
+      // Clear invalid session
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('username');
     },
     
     async addExpense() {
@@ -129,6 +161,9 @@ export default {
       
       this.isLoggedIn = false;
       this.username = '';
+      // Clear saved login state
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('username');
     }
   }
 }
@@ -136,7 +171,7 @@ export default {
 
 <style>
 #app {
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
   padding: 0;
 }
@@ -149,29 +184,34 @@ export default {
 .app-header {
   background: #2196F3;
   color: white;
-  padding: 20px;
+  padding: 15px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .app-header h1 {
   margin: 0;
+  font-size: 1.5rem;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 10px;
+  font-size: 0.9rem;
 }
 
 .logout-btn {
   background: #f44336;
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: 8px 12px;
   border-radius: 5px;
   cursor: pointer;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .logout-btn:hover {
@@ -179,45 +219,48 @@ export default {
 }
 
 .app-content {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 20px;
 }
 
 .expense-form {
   background: white;
-  padding: 30px;
+  padding: 20px;
   border-radius: 10px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .expense-form h2 {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   color: #333;
+  font-size: 1.3rem;
 }
 
 .expense-form form {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .expense-form input {
-  flex: 1;
-  padding: 12px;
+  padding: 15px;
   border: 1px solid #ddd;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 16px;
+  -webkit-appearance: none;
 }
 
 .expense-form button {
   background: #4CAF50;
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 5px;
+  padding: 15px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
+  font-weight: bold;
 }
 
 .expense-form button:hover:not(:disabled) {
@@ -237,14 +280,62 @@ export default {
   display: inline-block;
   background: #FF9800;
   color: white;
-  padding: 15px 30px;
+  padding: 15px 25px;
   text-decoration: none;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 16px;
   font-weight: bold;
 }
 
 .admin-btn:hover {
   background: #F57C00;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 10px 15px;
+  }
+  
+  .app-header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .user-info {
+    font-size: 0.8rem;
+    gap: 8px;
+  }
+  
+  .logout-btn {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  
+  .app-content {
+    padding: 15px;
+  }
+  
+  .expense-form {
+    padding: 15px;
+  }
+  
+  .expense-form h2 {
+    font-size: 1.1rem;
+  }
+  
+  .expense-form form {
+    gap: 12px;
+  }
+  
+  .expense-form input,
+  .expense-form button {
+    padding: 12px;
+    font-size: 16px;
+  }
+  
+  .admin-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
 }
 </style>

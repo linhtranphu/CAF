@@ -123,8 +123,8 @@ export default {
 
 .login-card {
   background: white;
-  padding: 40px;
-  border-radius: 10px;
+  padding: 30px;
+  border-radius: 15px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   max-width: 400px;
   width: 100%;
@@ -132,21 +132,24 @@ export default {
 
 h1 {
   color: #333;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
   text-align: center;
+  font-size: 1.8rem;
 }
 
 .users-info {
-  background: #f5f5f5;
+  background: #f8f9fa;
   padding: 15px;
-  border-radius: 5px;
+  border-radius: 8px;
   margin-bottom: 20px;
-  font-size: 14px;
+  font-size: 13px;
+  border-left: 4px solid #4285f4;
 }
 
 .users-info h4 {
   margin-bottom: 10px;
   color: #333;
+  font-size: 14px;
 }
 
 .form-group {
@@ -155,30 +158,40 @@ h1 {
 
 label {
   display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
+  margin-bottom: 8px;
+  font-weight: 600;
   color: #333;
+  font-size: 14px;
 }
 
 input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
+  padding: 15px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
   font-size: 16px;
   box-sizing: border-box;
+  transition: border-color 0.3s;
+  -webkit-appearance: none;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4285f4;
 }
 
 .login-btn {
   background: #4285f4;
   color: white;
-  padding: 12px 24px;
+  padding: 15px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   width: 100%;
   margin-top: 10px;
+  transition: background-color 0.3s;
 }
 
 .login-btn:hover:not(:disabled) {
@@ -191,11 +204,62 @@ input {
 }
 
 .error {
-  color: #f44336;
-  margin-top: 10px;
+  color: #dc3545;
+  margin-top: 15px;
   text-align: center;
-  padding: 10px;
-  background: #ffebee;
-  border-radius: 5px;
+  padding: 12px;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .login-container {
+    padding: 15px;
+  }
+  
+  .login-card {
+    padding: 25px 20px;
+  }
+  
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+  }
+  
+  .users-info {
+    padding: 12px;
+    font-size: 12px;
+  }
+  
+  .users-info h4 {
+    font-size: 13px;
+  }
+  
+  input, .login-btn {
+    padding: 12px;
+    font-size: 16px;
+  }
+  
+  label {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 20px 15px;
+  }
+  
+  h1 {
+    font-size: 1.3rem;
+  }
+  
+  .users-info {
+    padding: 10px;
+    font-size: 11px;
+  }
 }
 </style>
