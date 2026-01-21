@@ -80,10 +80,17 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 func AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Skip auth for OPTIONS requests (CORS preflight)
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+		
 		session := sessions.Default(c)
 		userID := session.Get("user_id")
 		if userID == nil {
-			c.Redirect(http.StatusTemporaryRedirect, "/")
+			log.Printf("[AUTH] Unauthorized access attempt to %s", c.Request.URL.Path)
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
 			c.Abort()
 			return
 		}

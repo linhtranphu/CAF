@@ -58,7 +58,7 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	
 	r.Use(LoggerMiddleware())
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:8081", "http://localhost:3000", "https://your-domain.com"},
+		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
 		AllowCredentials: true,
@@ -68,7 +68,7 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	// Auth handler
 	authHandler := NewAuthHandler()
 
-	// Public routes
+	// Public routes (no auth required)
 	r.GET("/", func(c *gin.Context) {
 		log.Printf("[AUTH] Root route accessed")
 		session := sessions.Default(c)
@@ -81,8 +81,13 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 		log.Printf("[AUTH] Showing login page")
 		c.HTML(http.StatusOK, "login.html", nil)
 	})
+	
+	// Auth routes (no auth required)
 	r.POST("/auth/login", authHandler.Login)
 	r.GET("/auth/logout", authHandler.Logout)
+	r.OPTIONS("/auth/login", func(c *gin.Context) {
+		c.Status(200)
+	})
 
 	// Protected routes
 	protected := r.Group("/")

@@ -21,10 +21,11 @@ cd CAF/expense-tracker
 docker stop expense-mongodb expense-backend expense-frontend 2>/dev/null || true
 docker rm expense-mongodb expense-backend expense-frontend 2>/dev/null || true
 
+# Create network if not exists
+docker network create expense-network 2>/dev/null || true
+
 # Build images
 echo "Building backend..."
-# Fix go.mod version first (if needed)
-
 docker build -t expense-backend ./backend
 
 echo "Building frontend..."
@@ -32,23 +33,31 @@ docker build -t expense-frontend ./frontend
 
 # Start MongoDB
 echo "Starting MongoDB..."
-docker run -d --name expense-mongodb -p 27017:27017 public.ecr.aws/docker/library/mongo:7
+docker run -d --name expense-mongodb \
+  --network expense-network \
+  -p 27017:27017 \
+  public.ecr.aws/docker/library/mongo:7
 
 # Wait for MongoDB
 sleep 10
 
 # Start backend
 echo "Starting backend..."
-docker run -d --name expense-backend -p 8081:8081 \
+docker run -d --name expense-backend \
+  --network expense-network \
+  -p 8081:8081 \
   -e PORT=8081 \
-  -e MONGODB_URI=mongodb://172.17.0.1:27017 \
+  -e MONGODB_URI=mongodb://expense-mongodb:27017 \
   -e GEMINI_API_KEY=$GEMINI_API_KEY \
   -e SESSION_SECRET=expense-tracker-secret-$(date +%s) \
   expense-backend
 
 # Start frontend
 echo "Starting frontend..."
-docker run -d --name expense-frontend -p 3000:80 expense-frontend
+docker run -d --name expense-frontend \
+  --network expense-network \
+  -p 3000:80 \
+  expense-frontend
 
 echo "✅ Deployment complete!"
 echo "Containers:"
