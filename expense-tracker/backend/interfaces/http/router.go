@@ -59,11 +59,22 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	r.Use(LoggerMiddleware())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowMethods:     []string{"GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	// Health check (no auth required)
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok", "timestamp": time.Now()})
+	})
+
+	// Public API health check
+	r.GET("/api/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok", "timestamp": time.Now()})
+	})
 
 	// Auth handler
 	authHandler := NewAuthHandler()
@@ -102,9 +113,6 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	{
 		api.POST("/expense", expenseHandler.CreateExpense)
 		api.GET("/expenses", expenseHandler.GetExpenses)
-		api.GET("/health", func(c *gin.Context) {
-			c.JSON(200, gin.H{"status": "ok", "timestamp": time.Now()})
-		})
 	}
 
 	return r
