@@ -14,7 +14,7 @@ RUN npm ci
 
 # Copy source code
 COPY . .
-
+RUN chmod -R +x /app/node_modules/.bin 
 # Build the application
 RUN npm run build
 
