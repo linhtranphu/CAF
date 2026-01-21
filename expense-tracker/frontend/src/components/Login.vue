@@ -60,7 +60,7 @@ export default {
       this.error = '';
       
       try {
-        const response = await fetch('/auth/login', {
+        const response = await fetch(`http://${window.location.hostname}:8081/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
