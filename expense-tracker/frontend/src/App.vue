@@ -93,9 +93,12 @@ export default {
       
       this.loading = true;
       try {
+        // Ensure backendUrl is set
         if (!this.backendUrl) {
-          throw new Error('Backend URL not ready');
+          this.backendUrl = `http://${window.location.hostname}:8081`;
         }
+        
+        console.log('API URL:', `${this.backendUrl}/api/expense`);
         
         const response = await fetch(`${this.backendUrl}/api/expense`, {
           method: 'POST',
@@ -139,6 +142,10 @@ export default {
     
     async logout() {
       try {
+        if (!this.backendUrl) {
+          this.backendUrl = `http://${window.location.hostname}:8081`;
+        }
+        
         await fetch(`${this.backendUrl}/auth/logout`, {
           credentials: 'include'
         });

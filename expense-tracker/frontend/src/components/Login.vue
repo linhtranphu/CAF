@@ -84,6 +84,13 @@ export default {
       this.error = '';
       
       try {
+        // Ensure backendUrl is set
+        if (!this.backendUrl) {
+          this.backendUrl = `http://${window.location.hostname}:8081`;
+        }
+        
+        console.log('Login URL:', `${this.backendUrl}/auth/login`);
+        
         const response = await fetch(`${this.backendUrl}/auth/login`, {
           method: 'POST',
           headers: {

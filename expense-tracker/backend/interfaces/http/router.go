@@ -101,8 +101,13 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	// Auth routes (no auth required)
 	r.POST("/auth/login", authHandler.Login)
 	r.GET("/auth/logout", authHandler.Logout)
+	r.POST("/auth/logout", authHandler.Logout)
 	r.OPTIONS("/auth/login", func(c *gin.Context) {
-		c.Status(200)
+		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
+		c.Header("Access-Control-Allow-Methods", "POST, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Origin, Accept")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Status(204)
 	})
 
 	// Protected routes
@@ -112,6 +117,15 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 		protected.GET("/admin", adminHandler.AdminPage)
 		protected.DELETE("/admin/expense/:id", adminHandler.DeleteExpense)
 	}
+
+	// Add OPTIONS handler for all API routes
+	r.OPTIONS("/api/*path", func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
+		c.Header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, Authorization")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Status(204)
+	})
 
 	api := r.Group("/api")
 	api.Use(AuthRequired())
