@@ -96,6 +96,15 @@ export default {
           })
         });
         
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Server trả về không phải JSON');
+        }
+        
         const data = await response.json();
         
         if (data.message) {

@@ -108,6 +108,20 @@ export default {
           })
         });
         
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            alert('❌ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            this.isLoggedIn = false;
+            return;
+          }
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Server trả về không phải JSON');
+        }
+        
         const data = await response.json();
         
         if (data.success) {
