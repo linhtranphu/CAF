@@ -1,8 +1,10 @@
 # Build stage
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS builder
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023.6.20241121.0 AS builder
 
-# Install Go
-RUN yum update -y && yum install -y golang git
+# Install Go and Git
+RUN yum update -y && \
+    yum install -y golang git ca-certificates && \
+    yum clean all
 
 WORKDIR /app
 
@@ -17,9 +19,13 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o main cmd/main.go
 
 # Production stage
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023.6.20241121.0
 
-RUN yum update -y && yum install -y ca-certificates tzdata && yum clean all
+RUN yum update -y && \
+    yum install -y ca-certificates tzdata && \
+    yum clean all && \
+    rm -rf /var/cache/yum
+
 WORKDIR /root/
 
 # Copy binary and templates

@@ -1,5 +1,10 @@
 # Build stage
-FROM public.ecr.aws/docker/library/node:18 AS builder
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023.6.20241121.0 AS builder
+
+# Install Node.js
+RUN yum update -y && \
+    yum install -y nodejs npm git && \
+    yum clean all
 
 WORKDIR /app
 
@@ -14,7 +19,13 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM public.ecr.aws/nginx/nginx:stable
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023.6.20241121.0
+
+# Install nginx
+RUN yum update -y && \
+    yum install -y nginx && \
+    yum clean all && \
+    rm -rf /var/cache/yum
 
 # Copy built files
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -25,4 +36,5 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Expose port
 EXPOSE 80
 
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"]
