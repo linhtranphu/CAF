@@ -29,8 +29,8 @@ chmod +x deploy-simple.sh
 ### Option B: Manual Deploy (If Docker Compose fails)
 ```bash
 # Clone repository
-git clone https://github.com/your-username/expense-tracker.git
-cd expense-tracker
+git clone https://github.com/linhtranphu/CAF.git
+cd CAF/expense-tracker
 
 # Run manual deploy
 chmod +x aws/deploy-manual.sh
@@ -44,7 +44,7 @@ chmod +x aws/deploy-manual.sh
 docker run -d --name expense-mongodb -p 27017:27017 mongo:7
 
 # 2. Fix Go version
-cd expense-tracker/backend
+cd CAF/expense-tracker/backend
 sed -i 's/go 1.24/go 1.21/' go.mod
 
 # 3. Build Backend

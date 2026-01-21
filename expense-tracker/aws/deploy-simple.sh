@@ -9,13 +9,12 @@ if [ -z "$GEMINI_API_KEY" ]; then
     echo "❌ GEMINI_API_KEY is required!"
     exit 1
 fi
-
 # Clone repository if not exists
-if [ ! -d "expense-tracker" ]; then
-    git clone https://github.com/your-username/expense-tracker.git
+if [ ! -d "CAF" ]; then
+    git clone https://github.com/linhtranphu/CAF.git
 fi
 
-cd expense-tracker
+cd CAF/expense-tracker
 
 # Create environment file
 cat > .env << EOF
