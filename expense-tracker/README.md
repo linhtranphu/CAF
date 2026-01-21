@@ -18,12 +18,12 @@ Modern expense tracking application with AI-powered message parsing and simple a
 - **Database**: MongoDB (Port 27017)
 - **AI**: Google Gemini 2.5 Flash Lite API
 - **Authentication**: Session-based with secure cookies
-- **Deployment**: Docker + AWS ECS/EC2 ready
+- **Deployment**: Docker + AWS EC2 ready
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Go 1.21+
+- Go 1.23+
 - Node.js 18+
 - MongoDB (local or Atlas)
 - Google Gemini API key
@@ -31,8 +31,8 @@ Modern expense tracking application with AI-powered message parsing and simple a
 ### Local Development
 ```bash
 # Clone and setup
-git clone <repository>
-cd expense-tracker
+git clone https://github.com/linhtranphu/CAF.git
+cd CAF/expense-tracker
 
 # Configure environment
 cp backend/.env.example backend/.env
@@ -43,7 +43,7 @@ cp backend/.env.example backend/.env
 
 # Or start manually:
 # 1. MongoDB
-docker run -d -p 27017:27017 --name mongodb mongo:7
+docker run -d -p 27017:27017 --name mongodb public.ecr.aws/docker/library/mongo:7
 
 # 2. Backend
 cd backend
@@ -102,64 +102,91 @@ SESSION_SECRET=your-secure-session-secret-change-in-production
    - Detailed expense table
    - Soft delete functionality
 
-## 🌐 Deployment Options
+## 🌐 AWS EC2 Deployment
 
-### Option 1: AWS ECS Fargate (Recommended)
+### Step 1: Create EC2 Instance
+1. **AWS Console** → **EC2** → **Launch Instance**
+2. Configuration:
+   - **AMI**: Amazon Linux 2023 AMI 2023.10.20260105.0 x86_64 HVM kernel-6.1
+   - **Instance Type**: t3.micro (free tier)
+   - **Key Pair**: Create or select key pair
+   - **Security Group**: 
+     - SSH (22) - 0.0.0.0/0
+     - HTTP (80) - 0.0.0.0/0
+     - Custom TCP (3000) - 0.0.0.0/0
+     - Custom TCP (8081) - 0.0.0.0/0
+3. **Launch Instance**
+
+### Step 2: Connect to EC2
 ```bash
-# See detailed guide
-cat aws/README.md
-
-# Quick deploy
-cd aws
-./deploy.sh
+# SSH to EC2 (Windows - use PowerShell or Git Bash)
+ssh -i "your-key.pem" ec2-user@your-ec2-public-ip
 ```
 
-### Option 2: AWS EC2 (Simple)
+### Step 3: Install Docker
 ```bash
-# 1. Launch EC2 instance (t3.micro or larger)
-# 2. Install Docker and Docker Compose
+# Update system
 sudo yum update -y
-sudo yum install -y docker
+
+# Install Docker and Git
+sudo yum install -y docker git
+
+# Start Docker
 sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add user to docker group
 sudo usermod -a -G docker ec2-user
 
-# Install Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-
-# 3. Clone and deploy
-git clone <your-repo>
-cd expense-tracker
-
-# 4. Configure production environment
-cp backend/.env.example backend/.env
-# Edit .env with production values:
-# - GEMINI_API_KEY=your-production-key
-# - MONGODB_URI=mongodb://mongodb:27017 (for Docker)
-# - SESSION_SECRET=secure-random-string
-
-# 5. Deploy with Docker Compose
-docker-compose up -d
-
-# 6. Configure security group
-# Allow inbound: 22 (SSH), 80 (HTTP), 443 (HTTPS), 3000 (Frontend), 8081 (Backend)
-
-# 7. Access application
-# Frontend: http://your-ec2-ip:3000
-# Backend Admin: http://your-ec2-ip:8081
+# Logout and login again
+exit
+ssh -i "your-key.pem" ec2-user@your-ec2-public-ip
 ```
 
-### Option 3: Traditional Server
+### Step 4: Clone and Deploy
 ```bash
-# Install dependencies
-# Go, Node.js, MongoDB, PM2
+# Clone repository
+git clone https://github.com/linhtranphu/CAF.git
+cd CAF/expense-tracker
 
-# Build and run
-cd backend && go build -o expense-tracker cmd/main.go
-cd frontend && npm run build
+# Run deploy script
+chmod +x aws/deploy-simple.sh
+./aws/deploy-simple.sh
 
-# Use PM2 or systemd for process management
-pm2 start ecosystem.config.js
+# Enter GEMINI_API_KEY when prompted
+```
+
+### Step 5: Verify Deployment
+```bash
+# Check containers
+docker ps
+
+# Check logs if needed
+docker logs expense-backend
+docker logs expense-frontend
+docker logs expense-mongodb
+
+# Test endpoints
+curl http://localhost:8081
+curl http://localhost:3000
+```
+
+### Step 6: Access Application
+- **Frontend**: `http://your-ec2-public-ip:3000`
+- **Backend API**: `http://your-ec2-public-ip:8081`
+- **Admin Panel**: `http://your-ec2-public-ip:8081/admin`
+
+### Useful Commands
+```bash
+# Restart all containers
+docker restart expense-mongodb expense-backend expense-frontend
+
+# View logs real-time
+docker logs -f expense-backend
+
+# Stop and remove containers
+docker stop expense-mongodb expense-backend expense-frontend
+docker rm expense-mongodb expense-backend expense-frontend
 ```
 
 ## 🛠️ Tech Stack
@@ -245,4 +272,97 @@ docker ps
 
 # Test API endpoints
 curl http://localhost:8081/api/health
+```
+
+## 🛠️ Tech Stack
+
+### Backend
+- **Go 1.23** - High performance, compiled language
+- **Gin** - Fast HTTP web framework
+- **MongoDB Driver** - Official Go driver
+- **Gin Sessions** - Cookie-based session management
+- **CORS** - Cross-origin resource sharing
+- **Google Gemini API** - AI message parsing
+
+### Frontend
+- **Vue.js 3** - Progressive JavaScript framework
+- **Vite** - Fast build tool and dev server
+- **Fetch API** - HTTP client for backend communication
+- **CSS3** - Modern styling with gradients and animations
+
+### Database
+- **MongoDB** - Document-based NoSQL database
+- **ObjectID** - Native MongoDB identifiers
+- **Soft Delete** - Status-based deletion for audit
+
+### DevOps
+- **Docker** - Containerization with Amazon Linux 2023
+- **AWS ECR** - Container registry for optimized images
+- **AWS EC2** - Virtual private servers
+- **Nginx** - Reverse proxy and static file serving
+
+## 🔐 Security Features
+- Session-based authentication with secure cookies
+- CORS protection with specific origins
+- Environment variable configuration
+- Soft delete for data integrity
+- Input validation and sanitization
+- MongoDB injection protection
+
+## 📈 Monitoring & Logs
+- Structured logging with request/response details
+- MongoDB operation logging
+- Session management logging
+- Error handling with proper HTTP status codes
+
+## 🚨 Production Checklist
+- [ ] Change SESSION_SECRET to secure random string
+- [ ] Use production MongoDB (Atlas recommended)
+- [ ] Configure proper CORS origins
+- [ ] Set up HTTPS with SSL certificates
+- [ ] Configure proper security groups/firewall
+- [ ] Set up monitoring and alerting
+- [ ] Configure backup strategy for MongoDB
+- [ ] Use environment-specific .env files
+- [ ] Set up Elastic IP for EC2
+- [ ] Configure domain name with Route 53
+
+## 🤝 Contributing
+1. Fork the repository
+2. Create feature branch
+3. Make changes with tests
+4. Submit pull request
+
+## 📄 License
+MIT License - see LICENSE file for details
+
+## 🆘 Troubleshooting
+
+### Common Issues
+1. **MongoDB Connection**: Ensure MongoDB is running and URI is correct
+2. **Gemini API**: Verify API key is valid and has quota
+3. **CORS Errors**: Check allowed origins in router.go
+4. **Session Issues**: Verify SESSION_SECRET is set
+5. **Port Conflicts**: Ensure ports 3000, 8081, 27017 are available
+6. **Docker Build**: Check Go version compatibility (requires 1.23+)
+
+### Debug Commands
+```bash
+# Check MongoDB connection
+docker exec -it expense-mongodb mongosh
+
+# View backend logs
+docker logs expense-backend
+
+# Check running containers
+docker ps
+
+# Test API endpoints
+curl http://localhost:8081/api/health
+
+# Restart containers
+docker restart expense-mongodb expense-backend expense-frontend
+
+# Check EC2 metadata
+curl http://169.254.169.254/latest/meta-data/public-ipv4
 ```
