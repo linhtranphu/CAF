@@ -1,10 +1,5 @@
 # Build stage
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023.6.20241121.0 AS builder
-
-# Install Go and Git
-RUN yum update -y && \
-    yum install -y golang git ca-certificates && \
-    yum clean all
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
