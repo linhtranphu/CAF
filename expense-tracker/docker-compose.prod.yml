@@ -3,66 +3,45 @@ version: '3.8'
 services:
   mongodb:
     image: public.ecr.aws/docker/library/mongo:7
-    container_name: expense-mongodb-prod
+    container_name: expense-mongodb
     restart: unless-stopped
-    volumes:
-      - mongodb_data:/data/db
-    environment:
-      MONGO_INITDB_DATABASE: expense_tracker
+    ports:
+      - "27017:27017"
     networks:
       - expense-network
-    # No external port exposure for security
+    volumes:
+      - mongodb_data:/data/db
 
   backend:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: expense-backend-prod
+    build: ./backend
+    container_name: expense-backend
     restart: unless-stopped
+    ports:
+      - "8081:8081"
     environment:
       - PORT=8081
       - MONGODB_URI=mongodb://mongodb:27017
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_SECRET=expense-tracker-secret-${RANDOM_SECRET:-default}
     depends_on:
       - mongodb
     networks:
       - expense-network
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: expense-frontend-prod
+    build: ./frontend
+    container_name: expense-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "3000:80"
     depends_on:
       - backend
     networks:
       - expense-network
-
-  # Reverse proxy (optional)
-  nginx:
-    image: nginx:alpine
-    container_name: expense-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - expense-network
-
-volumes:
-  mongodb_data:
 
 networks:
   expense-network:
     driver: bridge
+
+volumes:
+  mongodb_data:
