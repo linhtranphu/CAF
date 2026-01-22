@@ -1,6 +1,7 @@
 package http
 
 import (
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -45,6 +46,13 @@ func getStatusText(code int) string {
 
 func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.Engine {
 	r := gin.Default()
+	
+	// Add template functions
+	r.SetFuncMap(template.FuncMap{
+		"add": func(a, b int) int {
+			return a + b
+		},
+	})
 	
 	// Load HTML templates
 	r.LoadHTMLGlob("templates/*")
@@ -100,9 +108,17 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	
 	// Auth routes (no auth required)
 	r.POST("/auth/login", authHandler.Login)
+	r.POST("/auth/register", authHandler.Register)
 	r.GET("/auth/logout", authHandler.Logout)
 	r.POST("/auth/logout", authHandler.Logout)
 	r.OPTIONS("/auth/login", func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
+		c.Header("Access-Control-Allow-Methods", "POST, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Origin, Accept")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Status(204)
+	})
+	r.OPTIONS("/auth/register", func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
 		c.Header("Access-Control-Allow-Methods", "POST, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Origin, Accept")
@@ -115,6 +131,8 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 	protected.Use(AuthRequired())
 	{
 		protected.GET("/admin", adminHandler.AdminPage)
+		protected.GET("/admin/deleted", adminHandler.DeletedPage)
+		protected.GET("/admin/export-csv", adminHandler.ExportCSV)
 		protected.DELETE("/admin/expense/:id", adminHandler.DeleteExpense)
 	}
 

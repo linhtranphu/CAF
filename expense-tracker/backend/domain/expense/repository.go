@@ -1,5 +1,7 @@
 package expense
 
+import "time"
+
 type Repository interface {
 	Save(expense *Expense) error
 	FindByID(id int) (*Expense, error)
@@ -7,11 +9,13 @@ type Repository interface {
 	FindActiveExpenses() ([]*Expense, error)
 	GetSummaryByPaidBy() (map[string]int64, error)
 	Delete(id string) error
+	ClearAll() error
 	GetAll() ([]map[string]interface{}, error)
+	GetDeleted() ([]map[string]interface{}, error)
 }
 
 type MessageParser interface {
-	Parse(message string) (items string, amount int64, error error)
+	Parse(message string) (items string, amount int64, paidDate time.Time, error error)
 }
 
 // DTOs for presentation layer

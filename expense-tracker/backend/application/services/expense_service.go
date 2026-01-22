@@ -1,6 +1,9 @@
 package services
 
 import (
+	"bytes"
+	"encoding/csv"
+	"fmt"
 	"log"
 	"expense-tracker/domain/expense"
 	"expense-tracker/domain/user"
@@ -24,16 +27,12 @@ func (s *ExpenseService) CreateExpenseFromMessage(message, userName string) erro
 		return err
 	}
 
-	items, amount, err := s.parser.Parse(message)
+	items, amount, paidDate, err := s.parser.Parse(message)
 	if err != nil {
 		return err
 	}
 
-	exp, err := expense.NewExpense(items, amount, user.Name())
-	if err != nil {
-		return err
-	}
-
+	exp := expense.NewExpenseWithDate(items, amount, user.Name(), paidDate)
 	return s.expenseRepo.Save(exp)
 }
 
@@ -63,6 +62,38 @@ func (s *ExpenseService) GetExpenseSummary() (map[string]int64, error) {
 	return s.expenseRepo.GetSummaryByPaidBy()
 }
 
+func (s *ExpenseService) GetDeletedExpenses() ([]map[string]interface{}, error) {
+	return s.expenseRepo.GetDeleted()
+}
+
 func (s *ExpenseService) DeleteExpense(id string) error {
 	return s.expenseRepo.Delete(id)
+}
+
+func (s *ExpenseService) ExportToCSV() ([]byte, error) {
+	expenses, err := s.expenseRepo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+
+	// Write headers
+	headers := []string{"Mô tả", "Số tiền (VND)", "Ngày", "Người trả"}
+	writer.Write(headers)
+
+	// Write data
+	for _, expense := range expenses {
+		record := []string{
+			expense["items"].(string),
+			fmt.Sprintf("%d", expense["amount"].(int64)),
+			expense["paidDate"].(string),
+			expense["paidBy"].(string),
+		}
+		writer.Write(record)
+	}
+
+	writer.Flush()
+	return buf.Bytes(), writer.Error()
 }

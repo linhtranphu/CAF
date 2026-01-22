@@ -15,6 +15,11 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type RegisterRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
 // Simple hardcoded users - in production use database
 var users = map[string]string{
 	"admin": "admin123",
@@ -69,8 +74,32 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }
 
-func (h *AuthHandler) Logout(c *gin.Context) {
-	session := sessions.Default(c)
+func (h *AuthHandler) Register(c *gin.Context) {
+	log.Printf("[AUTH] Register request received")
+	
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[AUTH] Invalid JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	log.Printf("[AUTH] Register attempt: %s", req.Username)
+	
+	// Check if user already exists
+	if _, exists := users[req.Username]; exists {
+		log.Printf("[AUTH] User already exists: %s", req.Username)
+		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
+		return
+	}
+
+	// Add new user
+	users[req.Username] = req.Password
+	log.Printf("[AUTH] User registered successfully: %s", req.Username)
+	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful"})
+}
+
+func (h *AuthHandler) Logout(c *gin.Context) {session := sessions.Default(c)
 	username := session.Get("username")
 	session.Clear()
 	session.Save()

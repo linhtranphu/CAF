@@ -18,12 +18,13 @@ type Repository struct {
 }
 
 type ExpenseDoc struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty"`
-	Items    string             `bson:"items"`
-	Amount   int64              `bson:"amount"`
-	PaidDate time.Time          `bson:"paid_date"`
-	PaidBy   string             `bson:"paid_by"`
-	Status   string             `bson:"status"`
+	ID          primitive.ObjectID `bson:"_id,omitempty"`
+	Items       string             `bson:"items"`
+	Amount      int64              `bson:"amount"`
+	PaidDate    time.Time          `bson:"paid_date"`
+	PaidBy      string             `bson:"paid_by"`
+	Status      string             `bson:"status"`
+	DeletedDate *time.Time         `bson:"deleted_date,omitempty"`
 }
 
 func NewRepository() (*Repository, error) {
@@ -206,12 +207,74 @@ func (r *Repository) Delete(id string) error {
 		return err
 	}
 
-	log.Printf("[MONGO] Deleting expense with ObjectID: %s", id)
+	log.Printf("[MONGO] Soft deleting expense with ObjectID: %s", id)
 	filter := bson.M{"_id": objectID}
-	update := bson.M{"$set": bson.M{"status": "deleted"}}
+	now := time.Now()
+	update := bson.M{"$set": bson.M{
+		"status": "deleted",
+		"deleted_date": now,
+	}}
 	result, err := r.collection.UpdateOne(ctx, filter, update)
-	log.Printf("[MONGO] Update result: %+v, error: %v", result, err)
+	log.Printf("[MONGO] Soft delete result: %+v, error: %v", result, err)
 	return err
+}
+
+func (r *Repository) GetDeleted() ([]map[string]interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"status": "deleted"}
+	log.Printf("[MONGO] GetDeleted - Filter: %+v", filter)
+	
+	cursor, err := r.collection.Find(ctx, filter)
+	if err != nil {
+		log.Printf("[MONGO] GetDeleted - Find error: %v", err)
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var expenses []map[string]interface{}
+	for cursor.Next(ctx) {
+		var doc ExpenseDoc
+		if err := cursor.Decode(&doc); err != nil {
+			log.Printf("[MONGO] GetDeleted - Decode error: %v", err)
+			continue
+		}
+		
+		log.Printf("[MONGO] GetDeleted - Found deleted record: ID=%s, Items=%s, Status=%s", doc.ID.Hex(), doc.Items, doc.Status)
+		
+		deletedDate := "N/A"
+		if doc.DeletedDate != nil {
+			deletedDate = doc.DeletedDate.Format("2006-01-02")
+		}
+		
+		expenses = append(expenses, map[string]interface{}{
+			"id":          doc.ID.Hex(),
+			"items":       doc.Items,
+			"amount":      doc.Amount,
+			"paidDate":    doc.PaidDate.Format("2006-01-02"),
+			"paidBy":      doc.PaidBy,
+			"deletedDate": deletedDate,
+		})
+	}
+
+	log.Printf("[MONGO] GetDeleted - Total deleted expenses: %d", len(expenses))
+	return expenses, nil
+}
+
+func (r *Repository) ClearAll() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	log.Printf("[MONGO] Clearing all expenses from database")
+	result, err := r.collection.DeleteMany(ctx, bson.M{})
+	if err != nil {
+		log.Printf("[MONGO] Clear all error: %v", err)
+		return err
+	}
+
+	log.Printf("[MONGO] Successfully deleted %d documents", result.DeletedCount)
+	return nil
 }
 
 func (r *Repository) Close() error {

@@ -23,6 +23,26 @@ type ExpenseData struct {
 	PaidDate string `json:"paidDate,omitempty"`
 }
 
+// parseDate parses date string to time.Time
+func parseDate(dateStr string) time.Time {
+	if dateStr == "" {
+		return time.Now()
+	}
+	
+	// Try parsing YYYY-MM-DD format
+	if parsed, err := time.Parse("2006-01-02", dateStr); err == nil {
+		return parsed
+	}
+	
+	// Try parsing DD/MM format (assume current year)
+	if parsed, err := time.Parse("02/01", dateStr); err == nil {
+		return time.Date(time.Now().Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.Local)
+	}
+	
+	// Default to current time if parsing fails
+	return time.Now()
+}
+
 func NewMessageParser() *MessageParser {
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
@@ -53,37 +73,48 @@ func NewMessageParser() *MessageParser {
 	}
 }
 
-func (p *MessageParser) Parse(message string) (string, int64, error) {
+func (p *MessageParser) Parse(message string) (string, int64, time.Time, error) {
 	log.Printf("[AI] Parsing message: %s", message)
 	
 	if p.client == nil {
 		log.Printf("[AI] No Gemini client available, returning basic parse")
-		return strings.Title(strings.ToLower(message)), 1, nil
+		return strings.Title(strings.ToLower(message)), 1, time.Now(), nil
 	}
 	
 	// Check cache first
 	messageKey := strings.ToLower(strings.TrimSpace(message))
 	if cached, exists := p.cache[messageKey]; exists {
 		log.Printf("[AI] Cache hit for: %s", message)
-		return cached.Items, cached.Amount, nil
+		parsedDate := parseDate(cached.PaidDate)
+		return cached.Items, cached.Amount, parsedDate, nil
 	}
 
-	prompt := `Parse Vietnamese expense message to JSON:
+	currentDate := time.Now().Format("2006-01-02")
+	prompt := `Parse Vietnamese expense message to JSON with date extraction:
 
+Current date: ` + currentDate + `
 Message: "` + message + `"
 
 Return only JSON:
-{"items": "description", "amount": number_in_VND}
+{"items": "description", "amount": number_in_VND, "paidDate": "YYYY-MM-DD"}
 
 Rules:
 - "triệu" = x1,000,000
 - "k"/"nghìn" = x1,000
 - "tỷ" = x1,000,000,000
-- Remove amount from items
+- Remove amount and date from items
+- Date parsing:
+  * "hôm nay" = current date
+  * "hôm qua" = current date - 1 day
+  * "hôm kia" = current date - 2 days
+  * "tuần trước" = current date - 7 days
+  * "tháng trước" = current date - 30 days
+  * Specific dates: "22/1", "22 tháng 1", etc.
+  * If no date mentioned, use current date
 
 Examples:
-"cọc nhà 34 triệu" → {"items": "Cọc nhà", "amount": 34000000}
-"ăn trưa 150k" → {"items": "Ăn trưa", "amount": 150000}`
+"hôm qua ăn trưa 150k" → {"items": "Ăn trưa", "amount": 150000, "paidDate": "2026-01-21"}
+"cọc nhà 34 triệu ngày 20/1" → {"items": "Cọc nhà", "amount": 34000000, "paidDate": "2026-01-20"}`
 
 	log.Printf("[AI] Calling Gemini API...")
 	
@@ -105,7 +136,7 @@ Examples:
 	)
 	if err != nil {
 		log.Printf("[AI] Gemini API error: %v, using fallback", err)
-		return strings.Title(strings.ToLower(message)), 1, nil
+		return strings.Title(strings.ToLower(message)), 1, time.Now(), nil
 	}
 
 	responseText := result.Text()
@@ -127,13 +158,14 @@ Examples:
 	var resultData ExpenseData
 	if err := json.Unmarshal([]byte(cleanResponse), &resultData); err != nil {
 		log.Printf("[AI] JSON parse error: %v, response: %s, using fallback", err, cleanResponse)
-		return strings.Title(strings.ToLower(message)), 1, nil
+		return strings.Title(strings.ToLower(message)), 1, time.Now(), nil
 	}
 
 	// Cache the result
 	p.cache[messageKey] = resultData
 	log.Printf("[AI] Cached result for: %s", message)
 
-	log.Printf("[AI] Gemini result: items=%s, amount=%d", resultData.Items, resultData.Amount)
-	return resultData.Items, resultData.Amount, nil
+	parsedDate := parseDate(resultData.PaidDate)
+	log.Printf("[AI] Gemini result: items=%s, amount=%d, date=%s", resultData.Items, resultData.Amount, parsedDate.Format("2006-01-02"))
+	return resultData.Items, resultData.Amount, parsedDate, nil
 }

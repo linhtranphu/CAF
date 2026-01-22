@@ -1,6 +1,16 @@
 <template>
   <div id="app">
-    <Login v-if="!isLoggedIn" @login-success="handleLoginSuccess" />
+    <!-- Toast Notification -->
+    <div v-if="toast.show" :class="['toast', toast.type]">
+      {{ toast.message }}
+    </div>
+    
+    <Login v-if="!isLoggedIn && currentView === 'login'" 
+           @login-success="handleLoginSuccess" 
+           @switch-to-register="currentView = 'register'" />
+    
+    <Register v-if="!isLoggedIn && currentView === 'register'" 
+              @switch-to-login="currentView = 'login'" />
     <div v-else class="main-app">
       <header class="app-header">
         <h1>💰 Expense Tracker</h1>
@@ -19,8 +29,11 @@
               type="text" 
               placeholder="VD: ăn trưa 50k, mua xăng 200 nghìn"
               required
+              :disabled="loading"
             >
-            <button type="submit" :disabled="loading">➕ Thêm</button>
+            <button type="submit" :disabled="loading || !newExpense.trim()">
+              {{ loading ? '⏳ Đang thêm...' : '➕ Thêm' }}
+            </button>
           </form>
         </div>
         
@@ -36,11 +49,13 @@
 
 <script>
 import Login from './components/Login.vue'
+import Register from './components/Register.vue'
 
 export default {
   name: 'App',
   components: {
-    Login
+    Login,
+    Register
   },
   data() {
     return {
@@ -48,7 +63,13 @@ export default {
       username: '',
       newExpense: '',
       loading: false,
-      backendUrl: ''
+      backendUrl: '',
+      currentView: 'login',
+      toast: {
+        show: false,
+        message: '',
+        type: 'success'
+      }
     }
   },
   async mounted() {
@@ -94,6 +115,15 @@ export default {
       localStorage.removeItem('username');
     },
     
+    showToast(message, type = 'success') {
+      this.toast.message = message;
+      this.toast.type = type;
+      this.toast.show = true;
+      setTimeout(() => {
+        this.toast.show = false;
+      }, 3000);
+    },
+    
     async addExpense() {
       if (!this.newExpense.trim()) return;
       
@@ -119,7 +149,7 @@ export default {
         
         if (!response.ok) {
           if (response.status === 401 || response.status === 403) {
-            alert('❌ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+            this.showToast('❌ Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'error');
             this.isLoggedIn = false;
             return;
           }
@@ -135,12 +165,13 @@ export default {
         
         if (data.success) {
           this.newExpense = '';
-          alert('✅ Đã thêm chi phí thành công!');
+          this.showToast('✅ Đã thêm chi phí thành công!');
         } else {
-          alert('❌ Lỗi: ' + (data.error || 'Không thể thêm chi phí'));
+          this.showToast('❌ Lỗi: ' + (data.error || 'Không thể thêm chi phí'), 'error');
         }
+        
       } catch (error) {
-        alert('❌ Lỗi kết nối: ' + error.message);
+        this.showToast('❌ Lỗi: ' + error.message, 'error');
       } finally {
         this.loading = false;
       }
@@ -170,6 +201,40 @@ export default {
 </script>
 
 <style>
+/* Toast Notification */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+  max-width: 300px;
+  word-wrap: break-word;
+}
+
+.toast.success {
+  background: #4CAF50;
+}
+
+.toast.error {
+  background: #f44336;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 #app {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   margin: 0;
@@ -293,6 +358,14 @@ export default {
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
+  .toast {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    text-align: center;
+  }
+  
   .app-header {
     padding: 10px 15px;
   }
