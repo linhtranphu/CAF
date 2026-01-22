@@ -15,7 +15,9 @@ services:
       - expense-network
 
   backend:
-    build: ./backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: expense-backend
     restart: unless-stopped
     ports:
@@ -23,15 +25,17 @@ services:
     environment:
       - PORT=8081
       - MONGODB_URI=mongodb://mongodb:27017
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - SESSION_SECRET=${SESSION_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - SESSION_SECRET=${SESSION_SECRET:-expense-tracker-secret-default}
     depends_on:
       - mongodb
     networks:
       - expense-network
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: expense-frontend
     restart: unless-stopped
     ports:
