@@ -10,7 +10,27 @@ echo "===================================="
 # Get GEMINI API Key
 if [ -z "$GEMINI_API_KEY" ]; then
     echo "🔑 Cần GEMINI API Key từ: https://makersuite.google.com/app/apikey"
-    read -p "Nhập GEMINI_API_KEY: " GEMINI_API_KEY
+    echo "⚠️  Chạy script với: GEMINI_API_KEY=your_key bash script.sh"
+    echo "    Hoặc download script và chạy trực tiếp"
+    echo ""
+    echo "📥 Download script:"
+    echo "curl -O https://raw.githubusercontent.com/linhtranphu/CAF/main/expense-tracker/container-deploy.sh"
+    echo "chmod +x container-deploy.sh"
+    echo "./container-deploy.sh"
+    echo ""
+    if [ -t 0 ]; then
+        # Terminal input available
+        read -p "Nhập GEMINI_API_KEY: " GEMINI_API_KEY
+    else
+        # No terminal input (piped)
+        echo "❌ Không thể nhập API key qua pipe. Vui lòng download script và chạy trực tiếp."
+        exit 1
+    fi
+fi
+
+if [ -z "$GEMINI_API_KEY" ]; then
+    echo "❌ GEMINI_API_KEY là bắt buộc!"
+    exit 1
 fi
 
 # Install Docker if needed
