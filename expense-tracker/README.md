@@ -102,9 +102,37 @@ SESSION_SECRET=your-secure-session-secret-change-in-production
    - Detailed expense table
    - Soft delete functionality
 
-## 🌐 AWS EC2 Deployment
+## 🌐 Deployment Options
 
-### Step 1: Create EC2 Instance
+### Option 1: Quick Deploy with Docker Hub (Recommended)
+
+Sử dụng pre-built images từ Docker Hub để deploy nhanh chóng:
+
+```bash
+# Download deploy script
+curl -O https://raw.githubusercontent.com/linhtranphu/CAF/main/expense-tracker/hub-deploy.sh
+
+# Run hub deploy script
+chmod +x hub-deploy.sh
+./hub-deploy.sh
+
+# Nhập GEMINI_API_KEY khi được yêu cầu
+```
+
+**Ưu điểm:**
+- ⚡ Deploy nhanh (không cần build)
+- 🐳 Sử dụng pre-built images từ Docker Hub
+- 🔧 Tự động cấu hình môi trường
+- 📦 Tự động cài Docker nếu chưa có
+
+**Docker Hub Images:**
+- Backend: `linhtranphu/expense-backend:latest`
+- Frontend: `linhtranphu/expense-frontend:latest`
+- Database: `mongo:7`
+
+### Option 2: AWS EC2 Deployment
+
+#### Step 1: Create EC2 Instance
 1. **AWS Console** → **EC2** → **Launch Instance**
 2. Configuration:
    - **AMI**: Amazon Linux 2023 AMI 2023.10.20260105.0 x86_64 HVM kernel-6.1
@@ -143,7 +171,21 @@ exit
 ssh -i "your-key.pem" ec2-user@your-ec2-public-ip
 ```
 
-### Step 4: Clone and Deploy
+### Step 4: Deploy Application
+
+**Option A: Quick Deploy (Recommended)**
+```bash
+# Download deploy script
+curl -O https://raw.githubusercontent.com/linhtranphu/CAF/main/expense-tracker/hub-deploy.sh
+
+# Run hub deploy script
+chmod +x hub-deploy.sh
+./hub-deploy.sh
+
+# Enter GEMINI_API_KEY when prompted
+```
+
+**Option B: Build from Source**
 ```bash
 # Clone repository
 git clone https://github.com/linhtranphu/CAF.git
@@ -178,6 +220,9 @@ curl http://localhost:3000
 
 ### Useful Commands
 ```bash
+# Hub deploy - Quick restart
+./hub-deploy.sh
+
 # Restart all containers
 docker restart expense-mongodb expense-backend expense-frontend
 
@@ -185,8 +230,10 @@ docker restart expense-mongodb expense-backend expense-frontend
 docker logs -f expense-backend
 
 # Stop and remove containers
-docker stop expense-mongodb expense-backend expense-frontend
-docker rm expense-mongodb expense-backend expense-frontend
+docker-compose down
+
+# Check container status
+docker ps
 ```
 
 ## 🛠️ Tech Stack
