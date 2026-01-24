@@ -6,26 +6,25 @@ set -e
 echo "🚀 Expense Tracker - Docker Hub Deploy"
 echo "======================================"
 
-# Config - Thay your-username bằng Docker Hub username thật
-DOCKER_USERNAME="your-username"
-BACKEND_IMAGE="$DOCKER_USERNAME/expense-backend:latest"
-FRONTEND_IMAGE="$DOCKER_USERNAME/expense-frontend:latest"
+# Config - Sử dụng images đã build
+BACKEND_IMAGE="linhtranphu/expense-backend:latest"
+FRONTEND_IMAGE="linhtranphu/expense-frontend:latest"
 
-# Get GEMINI API Key
-if [ -z "$GEMINI_API_KEY" ]; then
-    if [ -t 0 ]; then
-        echo "🔑 Cần GEMINI API Key từ: https://makersuite.google.com/app/apikey"
-        read -p "Nhập GEMINI_API_KEY: " GEMINI_API_KEY
-    else
-        echo "❌ Cần GEMINI_API_KEY. Chạy: GEMINI_API_KEY=your_key bash script.sh"
-        exit 1
+# Get GEMINI API Key - Always prompt for input
+echo "🔑 GEMINI API Key Setup"
+echo "====================="
+echo "Bạn cần GEMINI API Key để sử dụng tính năng AI parsing"
+echo "Lấy miễn phí tại: https://makersuite.google.com/app/apikey"
+echo ""
+
+while [ -z "$GEMINI_API_KEY" ]; do
+    read -p "Nhập GEMINI_API_KEY của bạn: " GEMINI_API_KEY
+    if [ -z "$GEMINI_API_KEY" ]; then
+        echo "⚠️  API Key không được để trống!"
     fi
-fi
+done
 
-if [ -z "$GEMINI_API_KEY" ]; then
-    echo "❌ GEMINI_API_KEY là bắt buộc!"
-    exit 1
-fi
+echo "✅ API Key đã nhận"
 
 # Install Docker if needed
 if ! command -v docker &> /dev/null; then
