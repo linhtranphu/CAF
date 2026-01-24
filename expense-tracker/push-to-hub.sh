@@ -4,7 +4,7 @@
 set -e
 
 # Config
-DOCKER_USERNAME="your-username"  # Thay bằng username Docker Hub của bạn
+DOCKER_USERNAME="linhtranphu"  # Thay bằng username Docker Hub của bạn
 BACKEND_IMAGE="$DOCKER_USERNAME/expense-backend"
 FRONTEND_IMAGE="$DOCKER_USERNAME/expense-frontend"
 TAG="latest"
