@@ -11,7 +11,8 @@
     
     <Register v-if="!isLoggedIn && currentView === 'register'" 
               @switch-to-login="currentView = 'login'" />
-    <div v-else class="main-app">
+    
+    <div v-if="isLoggedIn" class="main-app">
       <header class="app-header">
         <h1>💰 Expense Tracker</h1>
         <div class="user-info">
