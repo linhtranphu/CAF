@@ -1,52 +1,52 @@
 #!/bin/bash
-# Deploy using Docker Hub images
+# Simple Deploy Script for Expense Tracker
+# Uses pre-built images from Docker Hub
 
 set -e
 
-echo "🚀 Expense Tracker - Docker Hub Deploy"
-echo "======================================"
+echo "🚀 Expense Tracker - Simple Deploy"
+echo "=================================="
 
-# Config - Sử dụng images đã build
-DOCKER_USERNAME="linhtranphu"
-BACKEND_IMAGE="$DOCKER_USERNAME/expense-backend:latest"
-FRONTEND_IMAGE="$DOCKER_USERNAME/expense-frontend:latest"
+# Docker images
+BACKEND_IMAGE="linhtranphu/expense-backend:latest"
+FRONTEND_IMAGE="linhtranphu/expense-frontend:latest"
 
-# Get GEMINI API Key - Always prompt for input
-echo "🔑 GEMINI API Key Setup"
-echo "====================="
-echo "Bạn cần GEMINI API Key để sử dụng tính năng AI parsing"
-echo "Lấy miễn phí tại: https://makersuite.google.com/app/apikey"
+# Get GEMINI API Key
+echo "🔑 GEMINI API Key Required"
+echo "========================="
+echo "Get your free API key at: https://makersuite.google.com/app/apikey"
 echo ""
 
 while [ -z "$GEMINI_API_KEY" ]; do
-    read -p "Nhập GEMINI_API_KEY của bạn: " GEMINI_API_KEY
+    read -p "Enter your GEMINI_API_KEY: " GEMINI_API_KEY
     if [ -z "$GEMINI_API_KEY" ]; then
-        echo "⚠️  API Key không được để trống!"
+        echo "⚠️  API Key cannot be empty!"
     fi
 done
 
-echo "✅ API Key đã nhận"
+echo "✅ API Key received"
 
 # Install Docker if needed
 if ! command -v docker &> /dev/null; then
     echo "📦 Installing Docker..."
     curl -fsSL https://get.docker.com | sudo sh
     sudo usermod -aG docker $USER
-    echo "⚠️  Logout và login lại, sau đó chạy script này lần nữa"
+    echo "⚠️  Please logout and login again, then run this script again"
     exit 0
 fi
 
+# Check Docker permissions
 if ! docker ps &> /dev/null; then
-    echo "❌ Docker permission denied! Logout và login lại"
+    echo "❌ Docker permission denied! Please logout and login again"
     exit 1
 fi
 
-echo "✅ Docker ready"
-
-# Setup project
+# Create project directory
 PROJECT_DIR="$HOME/expense-tracker"
 mkdir -p "$PROJECT_DIR"
 cd "$PROJECT_DIR"
+
+echo "📁 Project directory: $PROJECT_DIR"
 
 # Create docker-compose.yml
 cat > docker-compose.yml << EOF
@@ -89,14 +89,14 @@ volumes:
   mongodb_data:
 EOF
 
-echo "🐳 Starting services..."
+echo "🐳 Starting deployment..."
 
 # Pull images
 docker pull mongo:7
 docker pull "$BACKEND_IMAGE"
 docker pull "$FRONTEND_IMAGE"
 
-# Stop existing
+# Stop existing containers
 docker-compose down 2>/dev/null || true
 
 # Start services
@@ -104,7 +104,7 @@ docker-compose up -d
 
 echo "⏳ Waiting for services..."
 
-# Wait for backend
+# Wait for backend (60 seconds max)
 for i in {1..60}; do
     if curl -s http://localhost:8081/health > /dev/null 2>&1; then
         echo "✅ Backend ready!"
@@ -115,27 +115,40 @@ for i in {1..60}; do
         docker logs expense-backend --tail 10
         exit 1
     fi
-    sleep 2
+    sleep 1
 done
 
-# Wait for frontend
+# Wait for frontend (30 seconds max)
 for i in {1..30}; do
     if curl -s http://localhost:3000 > /dev/null 2>&1; then
         echo "✅ Frontend ready!"
         break
     fi
-    sleep 2
+    sleep 1
 done
 
 # Get public IP
 PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "localhost")
 
 echo ""
-echo "🎉 Deploy Complete!"
-echo "=================="
+echo "🎉 Deployment Successful!"
+echo "========================"
+echo ""
+echo "🌐 Access URLs:"
 echo "Frontend:    http://$PUBLIC_IP:3000"
 echo "Backend API: http://$PUBLIC_IP:8081"
 echo "Admin Panel: http://$PUBLIC_IP:8081/admin"
 echo ""
-echo "🐳 Running Containers:"
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+echo "📋 Next Steps:"
+echo "1. Open http://$PUBLIC_IP:3000 in your browser"
+echo "2. Register a new account"
+echo "3. Add expenses like: 'mua 2 cái bánh 50k'"
+echo "4. View reports at Admin Panel"
+echo ""
+echo "🛠️  Management Commands:"
+echo "Restart:  docker-compose restart"
+echo "Stop:     docker-compose down"
+echo "Logs:     docker logs expense-backend"
+echo "Update:   docker-compose pull && docker-compose up -d"
+echo ""
+echo "⚠️  Ensure Security Group allows ports 3000 and 8081"
