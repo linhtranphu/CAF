@@ -21,6 +21,8 @@ type ExpenseDoc struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty"`
 	Items       string             `bson:"items"`
 	Amount      int64              `bson:"amount"`
+	Quantity    string             `bson:"quantity,omitempty"`
+	Unit        string             `bson:"unit,omitempty"`
 	PaidDate    time.Time          `bson:"paid_date"`
 	PaidBy      string             `bson:"paid_by"`
 	Status      string             `bson:"status"`
@@ -61,6 +63,8 @@ func (r *Repository) Save(exp *expense.Expense) error {
 	doc := ExpenseDoc{
 		Items:    exp.Items(),
 		Amount:   exp.Amount(),
+		Quantity: exp.Quantity(),
+		Unit:     exp.Unit(),
 		PaidDate: exp.PaidDate(),
 		PaidBy:   exp.PaidBy(),
 		Status:   "active",
@@ -148,6 +152,8 @@ func (r *Repository) GetAll() ([]map[string]interface{}, error) {
 			"no":       doc.ID.Hex(), // Use ObjectID as string
 			"items":    doc.Items,
 			"amount":   doc.Amount,
+			"quantity": doc.Quantity,
+			"unit":     doc.Unit,
 			"paidDate": doc.PaidDate.Format("2006-01-02"),
 			"paidBy":   doc.PaidBy,
 		})
@@ -252,6 +258,8 @@ func (r *Repository) GetDeleted() ([]map[string]interface{}, error) {
 			"id":          doc.ID.Hex(),
 			"items":       doc.Items,
 			"amount":      doc.Amount,
+			"quantity":    doc.Quantity,
+			"unit":        doc.Unit,
 			"paidDate":    doc.PaidDate.Format("2006-01-02"),
 			"paidBy":      doc.PaidBy,
 			"deletedDate": deletedDate,

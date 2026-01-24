@@ -20,6 +20,8 @@ type MessageParser struct {
 type ExpenseData struct {
 	Items    string `json:"items"`
 	Amount   int64  `json:"amount"`
+	Quantity string `json:"quantity,omitempty"`
+	Unit     string `json:"unit,omitempty"`
 	PaidDate string `json:"paidDate,omitempty"`
 }
 
@@ -73,12 +75,12 @@ func NewMessageParser() *MessageParser {
 	}
 }
 
-func (p *MessageParser) Parse(message string) (string, int64, time.Time, error) {
+func (p *MessageParser) Parse(message string) (string, int64, string, string, time.Time, error) {
 	log.Printf("[AI] Parsing message: %s", message)
 	
 	if p.client == nil {
 		log.Printf("[AI] No Gemini client available, returning basic parse")
-		return strings.Title(strings.ToLower(message)), 1, time.Now(), nil
+		return strings.Title(strings.ToLower(message)), 1, "", "", time.Now(), nil
 	}
 	
 	// Check cache first
@@ -86,23 +88,29 @@ func (p *MessageParser) Parse(message string) (string, int64, time.Time, error) 
 	if cached, exists := p.cache[messageKey]; exists {
 		log.Printf("[AI] Cache hit for: %s", message)
 		parsedDate := parseDate(cached.PaidDate)
-		return cached.Items, cached.Amount, parsedDate, nil
+		return cached.Items, cached.Amount, cached.Quantity, cached.Unit, parsedDate, nil
 	}
 
 	currentDate := time.Now().Format("2006-01-02")
-	prompt := `Parse Vietnamese expense message to JSON with date extraction:
+	prompt := `Parse Vietnamese expense message to JSON with quantity/unit extraction:
 
 Current date: ` + currentDate + `
 Message: "` + message + `"
 
 Return only JSON:
-{"items": "description", "amount": number_in_VND, "paidDate": "YYYY-MM-DD"}
+{"items": "description", "amount": number_in_VND, "quantity": "number", "unit": "unit", "paidDate": "YYYY-MM-DD"}
 
 Rules:
 - "triệu" = x1,000,000
 - "k"/"nghìn" = x1,000
 - "tỷ" = x1,000,000,000
-- Remove amount and date from items
+- Extract quantity and unit separately:
+  * "2 cái bánh" → quantity: "2", unit: "cái"
+  * "50kg gạo" → quantity: "50", unit: "kg"
+  * "3 lon bia" → quantity: "3", unit: "lon"
+  * "1 bịch kẹo" → quantity: "1", unit: "bịch"
+  * "5 chai nước" → quantity: "5", unit: "chai"
+- Remove amount, quantity, unit and date from items
 - Date parsing:
   * "hôm nay" = current date
   * "hôm qua" = current date - 1 day
@@ -113,8 +121,9 @@ Rules:
   * If no date mentioned, use current date
 
 Examples:
-"hôm qua ăn trưa 150k" → {"items": "Ăn trưa", "amount": 150000, "paidDate": "2026-01-21"}
-"cọc nhà 34 triệu ngày 20/1" → {"items": "Cọc nhà", "amount": 34000000, "paidDate": "2026-01-20"}`
+"hôm qua mua 2 cái bánh 50k" → {"items": "Bánh", "amount": 50000, "quantity": "2", "unit": "cái", "paidDate": "2026-01-21"}
+"50kg gạo 1.2 triệu" → {"items": "Gạo", "amount": 1200000, "quantity": "50", "unit": "kg", "paidDate": "2026-01-22"}
+"ăn trưa 150k" → {"items": "Ăn trưa", "amount": 150000, "quantity": "", "unit": "", "paidDate": "2026-01-22"}`
 
 	log.Printf("[AI] Calling Gemini API...")
 	
@@ -136,7 +145,7 @@ Examples:
 	)
 	if err != nil {
 		log.Printf("[AI] Gemini API error: %v, using fallback", err)
-		return strings.Title(strings.ToLower(message)), 1, time.Now(), nil
+		return strings.Title(strings.ToLower(message)), 1, "", "", time.Now(), nil
 	}
 
 	responseText := result.Text()
@@ -158,7 +167,7 @@ Examples:
 	var resultData ExpenseData
 	if err := json.Unmarshal([]byte(cleanResponse), &resultData); err != nil {
 		log.Printf("[AI] JSON parse error: %v, response: %s, using fallback", err, cleanResponse)
-		return strings.Title(strings.ToLower(message)), 1, time.Now(), nil
+		return strings.Title(strings.ToLower(message)), 1, "", "", time.Now(), nil
 	}
 
 	// Cache the result
@@ -166,6 +175,7 @@ Examples:
 	log.Printf("[AI] Cached result for: %s", message)
 
 	parsedDate := parseDate(resultData.PaidDate)
-	log.Printf("[AI] Gemini result: items=%s, amount=%d, date=%s", resultData.Items, resultData.Amount, parsedDate.Format("2006-01-02"))
-	return resultData.Items, resultData.Amount, parsedDate, nil
+	log.Printf("[AI] Gemini result: items=%s, amount=%d, quantity=%s, unit=%s, date=%s", 
+		resultData.Items, resultData.Amount, resultData.Quantity, resultData.Unit, parsedDate.Format("2006-01-02"))
+	return resultData.Items, resultData.Amount, resultData.Quantity, resultData.Unit, parsedDate, nil
 }

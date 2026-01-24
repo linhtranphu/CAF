@@ -29,6 +29,8 @@ func (h *AdminHandler) AdminPage(c *gin.Context) {
 			"id":       exp.ID,
 			"items":    exp.Items,
 			"amount":   exp.Amount,
+			"quantity": exp.Quantity,
+			"unit":     exp.Unit,
 			"paidDate": exp.PaidDate,
 			"paidBy":   exp.PaidBy,
 		}

@@ -166,7 +166,20 @@ export default {
         
         if (data.success) {
           this.newExpense = '';
-          this.showToast('✅ Đã thêm chi phí thành công!');
+          
+          // Show parsed summary
+          if (data.parsed) {
+            let summary = `✅ Đã thêm: ${data.parsed.items}`;
+            if (data.parsed.quantity && data.parsed.unit) {
+              summary += ` (${data.parsed.quantity} ${data.parsed.unit})`;
+            } else if (data.parsed.quantity) {
+              summary += ` (${data.parsed.quantity})`;
+            }
+            summary += ` - ${new Intl.NumberFormat('vi-VN').format(data.parsed.amount)} VND`;
+            this.showToast(summary);
+          } else {
+            this.showToast('✅ Đã thêm chi phí thành công!');
+          }
         } else {
           this.showToast('❌ Lỗi: ' + (data.error || 'Không thể thêm chi phí'), 'error');
         }

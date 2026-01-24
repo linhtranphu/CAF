@@ -45,14 +45,18 @@ func (h *ExpenseHandler) CreateExpense(c *gin.Context) {
 
 	log.Printf("[INFO] Processing expense: user=%s, message=%s", username, req.Message)
 	
-	if err := h.service.CreateExpenseFromMessage(req.Message, username.(string)); err != nil {
+	parsedData, err := h.service.CreateExpenseFromMessageWithDetails(req.Message, username.(string))
+	if err != nil {
 		log.Printf("[ERROR] Failed to create expense: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	log.Printf("[SUCCESS] Expense created in %v", time.Since(start))
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"parsed": parsedData,
+	})
 }
 
 func (h *ExpenseHandler) GetExpenses(c *gin.Context) {

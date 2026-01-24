@@ -41,19 +41,29 @@
         .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(231,76,60,0.4); }
         
         /* Expense Cards */
-        .expenses-grid { display: grid; gap: 20px; }
-        .expense-card { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border-left: 5px solid #3498db; transition: all 0.3s ease; }
-        .expense-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+        .expenses-grid { display: grid; gap: 15px; }
+        .expense-card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 3px 12px rgba(0,0,0,0.08); border-left: 4px solid #3498db; transition: all 0.3s ease; cursor: pointer; }
+        .expense-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+        .expense-card.expanded { border-left-color: #e74c3c; }
         
-        .card-header { display: flex; justify-content: between; align-items: flex-start; margin-bottom: 15px; }
-        .card-amount { font-size: 1.8rem; font-weight: 800; color: #e74c3c; }
-        .card-date { color: #7f8c8d; font-size: 0.9rem; }
+        .card-summary { display: flex; justify-content: space-between; align-items: center; }
+        .summary-left { flex: 1; }
+        .summary-right { display: flex; align-items: center; gap: 15px; }
         
-        .card-content { margin-bottom: 15px; }
-        .card-items { font-size: 1.1rem; font-weight: 600; color: #2c3e50; margin-bottom: 8px; line-height: 1.4; }
-        .card-user { color: #3498db; font-weight: 600; }
+        .card-items-summary { font-size: 1.1rem; font-weight: 600; color: #2c3e50; margin-bottom: 5px; }
+        .card-quantity-summary { color: #8e44ad; font-weight: 500; font-size: 0.9rem; }
+        .card-amount { font-size: 1.6rem; font-weight: 800; color: #e74c3c; }
+        .expand-icon { font-size: 1.2rem; color: #7f8c8d; transition: transform 0.3s ease; }
+        .expense-card.expanded .expand-icon { transform: rotate(180deg); }
         
-        .card-actions { display: flex; gap: 10px; }
+        .card-details { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #ecf0f1; }
+        .expense-card.expanded .card-details { display: block; animation: slideDown 0.3s ease; }
+        
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .detail-label { color: #7f8c8d; font-weight: 500; }
+        .detail-value { color: #2c3e50; font-weight: 600; }
+        
+        .card-actions { display: flex; gap: 10px; margin-top: 15px; }
         .btn-sm { padding: 8px 16px; font-size: 0.9rem; border-radius: 8px; }
         
         /* Delete Confirmation */
@@ -149,29 +159,51 @@
         <!-- Expenses Grid -->
         <div class="expenses-grid">
             {{range $index, $expense := .expenses}}
-            <div class="expense-card">
-                <div class="card-header">
-                    <div class="card-amount">{{printf "%d" $expense.amount}} VND</div>
-                    <div class="card-date">📅 {{$expense.paidDate}}</div>
+            <div class="expense-card" onclick="toggleExpand({{$index}})">
+                <!-- Summary View -->
+                <div class="card-summary">
+                    <div class="summary-left">
+                        <div class="card-items-summary">{{$expense.items}}</div>
+                        {{if or $expense.quantity $expense.unit}}
+                        <div class="card-quantity-summary">📦 {{$expense.quantity}} {{$expense.unit}}</div>
+                        {{end}}
+                    </div>
+                    <div class="summary-right">
+                        <div class="card-amount">{{printf "%d" $expense.amount}} VND</div>
+                        <div class="expand-icon">▼</div>
+                    </div>
                 </div>
                 
-                <div class="card-content">
-                    <div class="card-items">{{$expense.items}}</div>
-                    <div class="card-user">👤 {{$expense.paidBy}}</div>
-                </div>
-                
-                <div class="card-actions">
-                    <button class="btn btn-danger btn-sm" onclick="showDeleteConfirm('{{$expense.id}}', {{$index}})">
-                        🗑️ Xóa
-                    </button>
-                </div>
-                
-                <!-- Delete Confirmation -->
-                <div id="deleteConfirm-{{$index}}" class="delete-confirm">
-                    <p><strong>Xác nhận xóa:</strong> "{{$expense.items}}" - {{printf "%d" $expense.amount}} VND?</p>
-                    <div class="actions">
-                        <button class="btn btn-danger" onclick="deleteExpense('{{$expense.id}}', {{$index}})">Xóa</button>
-                        <button class="btn btn-primary" onclick="hideDeleteConfirm({{$index}})">Hủy</button>
+                <!-- Detailed View -->
+                <div class="card-details" id="details-{{$index}}">
+                    <div class="detail-row">
+                        <span class="detail-label">📅 Ngày:</span>
+                        <span class="detail-value">{{$expense.paidDate}}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">👤 Người trả:</span>
+                        <span class="detail-value">{{$expense.paidBy}}</span>
+                    </div>
+                    {{if or $expense.quantity $expense.unit}}
+                    <div class="detail-row">
+                        <span class="detail-label">📦 Số lượng:</span>
+                        <span class="detail-value">{{$expense.quantity}}{{if $expense.unit}} {{$expense.unit}}{{end}}</span>
+                    </div>
+                    {{end}}
+                    
+                    <div class="card-actions" onclick="event.stopPropagation()">
+                        <button class="btn btn-danger btn-sm" onclick="showDeleteConfirm('{{$expense.id}}', {{$index}})">
+                            🗑️ Xóa
+                        </button>
+                    </div>
+                    
+                    <!-- Delete Confirmation -->
+                    <div id="deleteConfirm-{{$index}}" class="delete-confirm">
+                        <p><strong>Xác nhận xóa:</strong> "{{$expense.items}}" - {{printf "%d" $expense.amount}} VND?</p>
+                        <div class="actions">
+                            <button class="btn btn-danger" onclick="deleteExpense('{{$expense.id}}', {{$index}})">Xóa</button>
+                            <button class="btn btn-primary" onclick="hideDeleteConfirm({{$index}})">Hủy</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -186,6 +218,12 @@
     </div>
     
     <script>
+        // Toggle expand/collapse
+        function toggleExpand(index) {
+            const card = document.querySelectorAll('.expense-card')[index];
+            card.classList.toggle('expanded');
+        }
+        
         // Format numbers with comma separator
         function formatMoney(amount) {
             return new Intl.NumberFormat('vi-VN').format(amount);
