@@ -32,13 +32,21 @@ func (s *ExpenseService) CreateExpenseFromMessageWithDetails(message, userName s
 		return nil, err
 	}
 
-	items, amount, quantity, unit, paidDate, err := s.parser.Parse(message)
+	items, amount, quantity, unit, baseQuantity, baseUnit, originalMessage, paidDate, err := s.parser.Parse(message)
 	if err != nil {
 		return nil, err
 	}
 
+	log.Printf("[SERVICE] Parsed from AI: items=%s, quantity=%s, unit=%s, baseQuantity=%s, baseUnit=%s", 
+		items, quantity, unit, baseQuantity, baseUnit)
+
 	exp := expense.NewExpenseWithDate(items, amount, user.Name(), paidDate)
 	exp.SetQuantityUnit(quantity, unit)
+	exp.SetBaseQuantityUnit(baseQuantity, baseUnit)
+	exp.SetOriginalMessage(originalMessage)
+	
+	log.Printf("[SERVICE] Expense before save: Items=%s, Quantity=%s, Unit=%s, BaseQuantity=%s, BaseUnit=%s", 
+		exp.Items(), exp.Quantity(), exp.Unit(), exp.BaseQuantity(), exp.BaseUnit())
 	
 	if err := s.expenseRepo.Save(exp); err != nil {
 		return nil, err
@@ -46,12 +54,14 @@ func (s *ExpenseService) CreateExpenseFromMessageWithDetails(message, userName s
 
 	// Return parsed data
 	parsedData := map[string]interface{}{
-		"items":    items,
-		"amount":   amount,
-		"quantity": quantity,
-		"unit":     unit,
-		"paidDate": paidDate.Format("2006-01-02"),
-		"paidBy":   user.Name(),
+		"items":        items,
+		"amount":       amount,
+		"quantity":     quantity,
+		"unit":         unit,
+		"baseQuantity": baseQuantity,
+		"baseUnit":     baseUnit,
+		"paidDate":     paidDate.Format("2006-01-02"),
+		"paidBy":       user.Name(),
 	}
 
 	return parsedData, nil
@@ -66,13 +76,16 @@ func (s *ExpenseService) GetAllExpenses() ([]expense.ExpenseDTO, error) {
 	var dtos []expense.ExpenseDTO
 	for _, exp := range expenses {
 		dto := expense.ExpenseDTO{
-			ID:       exp["no"].(string), // Use ObjectID string
-			Items:    exp["items"].(string),
-			Amount:   exp["amount"].(int64),
-			Quantity: getStringField(exp, "quantity"),
-			Unit:     getStringField(exp, "unit"),
-			PaidDate: exp["paidDate"].(string),
-			PaidBy:   exp["paidBy"].(string),
+			ID:              exp["no"].(string),
+			Items:           exp["items"].(string),
+			Amount:          exp["amount"].(int64),
+			Quantity:        getStringField(exp, "quantity"),
+			Unit:            getStringField(exp, "unit"),
+			BaseQuantity:    getStringField(exp, "baseQuantity"),
+			BaseUnit:        getStringField(exp, "baseUnit"),
+			OriginalMessage: getStringField(exp, "originalMessage"),
+			PaidDate:        exp["paidDate"].(string),
+			PaidBy:          exp["paidBy"].(string),
 		}
 		log.Printf("[SERVICE] DTO: ID=%s, Items=%s, Quantity=%s, Unit=%s", dto.ID, dto.Items, dto.Quantity, dto.Unit)
 		dtos = append(dtos, dto)

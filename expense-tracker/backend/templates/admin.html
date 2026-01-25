@@ -170,6 +170,9 @@
                         {{if or $expense.quantity $expense.unit}}
                         <div class="card-quantity-summary">📦 {{$expense.quantity}} {{$expense.unit}}</div>
                         {{end}}
+                        {{if or $expense.baseQuantity $expense.baseUnit}}
+                        <div class="card-quantity-summary" style="color: #27ae60;">⚖️ {{$expense.baseQuantity}} {{$expense.baseUnit}}</div>
+                        {{end}}
                     </div>
                     <div class="summary-right">
                         <div class="card-amount">{{printf "%d" $expense.amount}} VND</div>
@@ -189,8 +192,20 @@
                     </div>
                     {{if or $expense.quantity $expense.unit}}
                     <div class="detail-row">
-                        <span class="detail-label">📦 Số lượng:</span>
+                        <span class="detail-label">📦 Số lượng hiển thị:</span>
                         <span class="detail-value">{{$expense.quantity}}{{if $expense.unit}} {{$expense.unit}}{{end}}</span>
+                    </div>
+                    {{end}}
+                    {{if or $expense.baseQuantity $expense.baseUnit}}
+                    <div class="detail-row">
+                        <span class="detail-label">⚖️ Khối lượng chuẩn:</span>
+                        <span class="detail-value" style="color: #27ae60; font-weight: 700;">{{$expense.baseQuantity}} {{$expense.baseUnit}}</span>
+                    </div>
+                    {{end}}
+                    {{if $expense.originalMessage}}
+                    <div class="detail-row">
+                        <span class="detail-label">💬 Tin nhắn gốc:</span>
+                        <span class="detail-value" style="color: #8e44ad; font-style: italic;">"{{$expense.originalMessage}}"</span>
                     </div>
                     {{end}}
                     

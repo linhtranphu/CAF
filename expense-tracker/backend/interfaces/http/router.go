@@ -44,7 +44,7 @@ func getStatusText(code int) string {
 	return "INFO"
 }
 
-func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler, settingsHandler *SettingsHandler) *gin.Engine {
+func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler, authHandler *AuthHandler, settingsHandler *SettingsHandler) *gin.Engine {
 	r := gin.Default()
 	
 	// Add template functions
@@ -89,8 +89,8 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler, setti
 		c.JSON(200, gin.H{"status": "ok", "timestamp": time.Now()})
 	})
 
-	// Auth handler
-	authHandler := NewAuthHandler()
+	// Auth handler - use injected one
+	// authHandler := NewAuthHandler()
 
 	// Public routes (no auth required)
 	r.GET("/", func(c *gin.Context) {

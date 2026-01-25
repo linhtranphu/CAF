@@ -6,14 +6,17 @@ import (
 )
 
 type Expense struct {
-	id       int
-	items    string
-	amount   Money
-	quantity string  // Số lượng (ví dụ: "2", "50")
-	unit     string  // Đơn vị (ví dụ: "cái", "kg")
-	paidDate time.Time
-	paidBy   string
-	status   Status
+	id              int
+	items           string
+	amount          Money
+	quantity        string
+	unit            string
+	baseQuantity    string
+	baseUnit        string
+	originalMessage string
+	paidDate        time.Time
+	paidBy          string
+	status          Status
 }
 
 type Status string
@@ -84,14 +87,17 @@ func NewExpenseWithDate(items string, amount int64, paidBy string, paidDate time
 	}
 }
 
-func (e *Expense) Items() string     { return e.items }
-func (e *Expense) Amount() int64     { return e.amount.Value() }
-func (e *Expense) Quantity() string  { return e.quantity }
-func (e *Expense) Unit() string      { return e.unit }
-func (e *Expense) PaidDate() time.Time { return e.paidDate }
-func (e *Expense) PaidBy() string    { return e.paidBy }
-func (e *Expense) Status() Status    { return e.status }
-func (e *Expense) ID() int           { return e.id }
+func (e *Expense) Items() string           { return e.items }
+func (e *Expense) Amount() int64            { return e.amount.Value() }
+func (e *Expense) Quantity() string         { return e.quantity }
+func (e *Expense) Unit() string             { return e.unit }
+func (e *Expense) BaseQuantity() string     { return e.baseQuantity }
+func (e *Expense) BaseUnit() string         { return e.baseUnit }
+func (e *Expense) OriginalMessage() string  { return e.originalMessage }
+func (e *Expense) PaidDate() time.Time      { return e.paidDate }
+func (e *Expense) PaidBy() string           { return e.paidBy }
+func (e *Expense) Status() Status           { return e.status }
+func (e *Expense) ID() int                  { return e.id }
 
 // Business logic methods
 func (e *Expense) Delete() {
@@ -109,4 +115,13 @@ func (e *Expense) IsDeleted() bool {
 func (e *Expense) SetQuantityUnit(quantity, unit string) {
 	e.quantity = quantity
 	e.unit = unit
+}
+
+func (e *Expense) SetBaseQuantityUnit(baseQuantity, baseUnit string) {
+	e.baseQuantity = baseQuantity
+	e.baseUnit = baseUnit
+}
+
+func (e *Expense) SetOriginalMessage(message string) {
+	e.originalMessage = message
 }

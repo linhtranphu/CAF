@@ -23,11 +23,14 @@ type MessageParser struct {
 }
 
 type ExpenseData struct {
-	Items    string `json:"items"`
-	Amount   int64  `json:"amount"`
-	Quantity string `json:"quantity,omitempty"`
-	Unit     string `json:"unit,omitempty"`
-	PaidDate string `json:"paidDate,omitempty"`
+	Items           string `json:"items"`
+	Amount          int64  `json:"amount"`
+	Quantity        string `json:"quantity,omitempty"`
+	Unit            string `json:"unit,omitempty"`
+	BaseQuantity    string `json:"baseQuantity,omitempty"`
+	BaseUnit        string `json:"baseUnit,omitempty"`
+	PaidDate        string `json:"paidDate,omitempty"`
+	OriginalMessage string `json:"originalMessage,omitempty"`
 }
 
 // parseDate parses date string to time.Time
@@ -87,7 +90,7 @@ func NewMessageParser(repo APIKeyRepository) *MessageParser {
 	}
 }
 
-func (p *MessageParser) Parse(message string) (string, int64, string, string, time.Time, error) {
+func (p *MessageParser) Parse(message string) (string, int64, string, string, string, string, string, time.Time, error) {
 	log.Printf("[AI] Parsing message: %s", message)
 	
 	// Refresh client if needed
@@ -108,7 +111,7 @@ func (p *MessageParser) Parse(message string) (string, int64, string, string, ti
 	
 	if p.client == nil {
 		log.Printf("[AI] No Gemini client available, returning basic parse")
-		return strings.Title(strings.ToLower(message)), 1, "", "", time.Now(), nil
+		return strings.Title(strings.ToLower(message)), 1, "", "", "", "", message, time.Now(), nil
 	}
 	
 	// Check cache first
@@ -116,42 +119,38 @@ func (p *MessageParser) Parse(message string) (string, int64, string, string, ti
 	if cached, exists := p.cache[messageKey]; exists {
 		log.Printf("[AI] Cache hit for: %s", message)
 		parsedDate := parseDate(cached.PaidDate)
-		return cached.Items, cached.Amount, cached.Quantity, cached.Unit, parsedDate, nil
+		return cached.Items, cached.Amount, cached.Quantity, cached.Unit, cached.BaseQuantity, cached.BaseUnit, cached.OriginalMessage, parsedDate, nil
 	}
 
 	currentDate := time.Now().Format("2006-01-02")
-	prompt := `Parse Vietnamese expense message to JSON with quantity/unit extraction:
+	prompt := `Parse Vietnamese expense message to JSON with base unit conversion (ISO standard):
 
 Current date: ` + currentDate + `
 Message: "` + message + `"
 
-Return only JSON:
-{"items": "description", "amount": number_in_VND, "quantity": "number", "unit": "unit", "paidDate": "YYYY-MM-DD"}
+Return ONLY valid JSON with this exact structure:
+{"items": "description", "amount": number_in_VND, "quantity": "display_number", "unit": "display_unit", "baseQuantity": "base_number", "baseUnit": "iso_unit", "paidDate": "YYYY-MM-DD"}
+
+IMPORTANT: You MUST include baseQuantity and baseUnit fields in your response!
 
 Rules:
 - "triệu" = x1,000,000
-- "k"/"nghìn" = x1,000
+- "k"/"nghìn" = x1,000  
 - "tỷ" = x1,000,000,000
-- Extract quantity and unit separately:
-  * "2 cái bánh" → quantity: "2", unit: "cái"
-  * "50kg gạo" → quantity: "50", unit: "kg"
-  * "3 lon bia" → quantity: "3", unit: "lon"
-  * "1 bịch kẹo" → quantity: "1", unit: "bịch"
-  * "5 chai nước" → quantity: "5", unit: "chai"
-- Remove amount, quantity, unit and date from items
-- Date parsing:
-  * "hôm nay" = current date
-  * "hôm qua" = current date - 1 day
-  * "hôm kia" = current date - 2 days
-  * "tuần trước" = current date - 7 days
-  * "tháng trước" = current date - 30 days
-  * Specific dates: "22/1", "22 tháng 1", etc.
-  * If no date mentioned, use current date
+- ALWAYS extract quantity/unit AND convert to base unit:
+  * "2 bao cà phê 0.5kg" → quantity: "2", unit: "bao", baseQuantity: "1", baseUnit: "kg"
+  * "50kg gạo" → quantity: "50", unit: "kg", baseQuantity: "50", baseUnit: "kg"
+  * "500g thịt" → quantity: "500", unit: "g", baseQuantity: "0.5", baseUnit: "kg"
+  * "2 lít dầu" → quantity: "2", unit: "lít", baseQuantity: "2", baseUnit: "L"
+  * "3kg gạo" → quantity: "3", unit: "kg", baseQuantity: "3", baseUnit: "kg"
+
+Base units (ISO): kg (mass), L (volume), m (length), pcs (count)
+Conversions: 1000g=1kg, 1000ml=1L, 100cm=1m
 
 Examples:
-"hôm qua mua 2 cái bánh 50k" → {"items": "Bánh", "amount": 50000, "quantity": "2", "unit": "cái", "paidDate": "2026-01-21"}
-"50kg gạo 1.2 triệu" → {"items": "Gạo", "amount": 1200000, "quantity": "50", "unit": "kg", "paidDate": "2026-01-22"}
-"ăn trưa 150k" → {"items": "Ăn trưa", "amount": 150000, "quantity": "", "unit": "", "paidDate": "2026-01-22"}`
+"2 bao cà phê 0.5kg 200k" → {"items": "Cà phê", "amount": 200000, "quantity": "2", "unit": "bao", "baseQuantity": "1", "baseUnit": "kg", "paidDate": "` + currentDate + `"}
+"500g thịt 150k" → {"items": "Thịt", "amount": 150000, "quantity": "500", "unit": "g", "baseQuantity": "0.5", "baseUnit": "kg", "paidDate": "` + currentDate + `"}
+"3kg gạo 180k" → {"items": "Gạo", "amount": 180000, "quantity": "3", "unit": "kg", "baseQuantity": "3", "baseUnit": "kg", "paidDate": "` + currentDate + `"}`
 
 	log.Printf("[AI] Calling Gemini API...")
 	
@@ -173,7 +172,7 @@ Examples:
 	)
 	if err != nil {
 		log.Printf("[AI] Gemini API error: %v, using fallback", err)
-		return strings.Title(strings.ToLower(message)), 1, "", "", time.Now(), nil
+		return strings.Title(strings.ToLower(message)), 1, "", "", "", "", message, time.Now(), nil
 	}
 
 	responseText := result.Text()
@@ -195,15 +194,26 @@ Examples:
 	var resultData ExpenseData
 	if err := json.Unmarshal([]byte(cleanResponse), &resultData); err != nil {
 		log.Printf("[AI] JSON parse error: %v, response: %s, using fallback", err, cleanResponse)
-		return strings.Title(strings.ToLower(message)), 1, "", "", time.Now(), nil
+		return strings.Title(strings.ToLower(message)), 1, "", "", "", "", message, time.Now(), nil
 	}
+
+	// Store original message
+	resultData.OriginalMessage = message
+
+	log.Printf("[AI] ===== AFTER JSON UNMARSHAL =====")
+	log.Printf("[AI] resultData struct: %+v", resultData)
+	log.Printf("[AI] Items: %s", resultData.Items)
+	log.Printf("[AI] BaseQuantity: '%s'", resultData.BaseQuantity)
+	log.Printf("[AI] BaseUnit: '%s'", resultData.BaseUnit)
+	log.Printf("[AI] ====================================")
 
 	// Cache the result
 	p.cache[messageKey] = resultData
 	log.Printf("[AI] Cached result for: %s", message)
 
 	parsedDate := parseDate(resultData.PaidDate)
-	log.Printf("[AI] Gemini result: items=%s, amount=%d, quantity=%s, unit=%s, date=%s", 
-		resultData.Items, resultData.Amount, resultData.Quantity, resultData.Unit, parsedDate.Format("2006-01-02"))
-	return resultData.Items, resultData.Amount, resultData.Quantity, resultData.Unit, parsedDate, nil
+	log.Printf("[AI] Gemini result: items=%s, amount=%d, quantity=%s, unit=%s, baseQuantity=%s, baseUnit=%s, date=%s", 
+		resultData.Items, resultData.Amount, resultData.Quantity, resultData.Unit, resultData.BaseQuantity, resultData.BaseUnit, parsedDate.Format("2006-01-02"))
+	log.Printf("[AI] Full parsed data: %+v", resultData)
+	return resultData.Items, resultData.Amount, resultData.Quantity, resultData.Unit, resultData.BaseQuantity, resultData.BaseUnit, resultData.OriginalMessage, parsedDate, nil
 }

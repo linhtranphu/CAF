@@ -8,7 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type AuthHandler struct{}
+type UserRepository interface {
+	CreateUser(username, password string) error
+	GetUser(username string) (string, error)
+}
+
+type AuthHandler struct {
+	userRepo UserRepository
+}
 
 type LoginRequest struct {
 	Username string `json:"username" binding:"required"`
@@ -20,16 +27,8 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// Simple hardcoded users - in production use database
-var users = map[string]string{
-	"admin": "admin123",
-	"user":  "user123",
-	"linh":  "linh123",
-	"toan":  "toan123",
-}
-
-func NewAuthHandler() *AuthHandler {
-	return &AuthHandler{}
+func NewAuthHandler(userRepo UserRepository) *AuthHandler {
+	return &AuthHandler{userRepo: userRepo}
 }
 
 func (h *AuthHandler) LoginPage(c *gin.Context) {
@@ -54,9 +53,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	log.Printf("[AUTH] Login attempt: %s", req.Username)
 	
-	// Check credentials
-	password, exists := users[req.Username]
-	if !exists || password != req.Password {
+	// Check credentials from database
+	password, err := h.userRepo.GetUser(req.Username)
+	if err != nil || password != req.Password {
 		log.Printf("[AUTH] Failed login attempt: %s", req.Username)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
 		return
@@ -86,15 +85,14 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	log.Printf("[AUTH] Register attempt: %s", req.Username)
 	
-	// Check if user already exists
-	if _, exists := users[req.Username]; exists {
+	// Create user in database
+	err := h.userRepo.CreateUser(req.Username, req.Password)
+	if err != nil {
 		log.Printf("[AUTH] User already exists: %s", req.Username)
 		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
 		return
 	}
 
-	// Add new user
-	users[req.Username] = req.Password
 	log.Printf("[AUTH] User registered successfully: %s", req.Username)
 	c.JSON(http.StatusCreated, gin.H{"message": "Registration successful"})
 }

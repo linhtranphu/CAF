@@ -26,13 +26,16 @@ func (h *AdminHandler) AdminPage(c *gin.Context) {
 	var expensesMaps []map[string]interface{}
 	for _, exp := range expenses {
 		expenseMap := map[string]interface{}{
-			"id":       exp.ID,
-			"items":    exp.Items,
-			"amount":   exp.Amount,
-			"quantity": exp.Quantity,
-			"unit":     exp.Unit,
-			"paidDate": exp.PaidDate,
-			"paidBy":   exp.PaidBy,
+			"id":              exp.ID,
+			"items":           exp.Items,
+			"amount":          exp.Amount,
+			"quantity":        exp.Quantity,
+			"unit":            exp.Unit,
+			"baseQuantity":    exp.BaseQuantity,
+			"baseUnit":        exp.BaseUnit,
+			"originalMessage": exp.OriginalMessage,
+			"paidDate":        exp.PaidDate,
+			"paidBy":          exp.PaidBy,
 		}
 		expensesMaps = append(expensesMaps, expenseMap)
 	}

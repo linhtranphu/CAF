@@ -65,14 +65,20 @@ func main() {
 
 	parser := ai.NewMessageParser(mongoRepo)
 
+	// Initialize default users
+	if err := mongoRepo.InitDefaultUsers(); err != nil {
+		log.Printf("Warning: Failed to initialize default users: %v", err)
+	}
+
 	// Application
 	expenseService := services.NewExpenseService(mongoRepo, parser)
 
 	// Interface
 	expenseHandler := http.NewExpenseHandler(expenseService)
 	adminHandler := http.NewAdminHandler(expenseService)
+	authHandler := http.NewAuthHandler(mongoRepo)
 	settingsHandler := http.NewSettingsHandler(mongoRepo)
-	router := http.NewRouter(expenseHandler, adminHandler, settingsHandler)
+	router := http.NewRouter(expenseHandler, adminHandler, authHandler, settingsHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

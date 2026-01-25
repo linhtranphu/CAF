@@ -15,16 +15,19 @@ type Repository interface {
 }
 
 type MessageParser interface {
-	Parse(message string) (items string, amount int64, quantity string, unit string, paidDate time.Time, error error)
+	Parse(message string) (items string, amount int64, quantity string, unit string, baseQuantity string, baseUnit string, originalMessage string, paidDate time.Time, error error)
 }
 
 // DTOs for presentation layer
 type ExpenseDTO struct {
-	ID       string `json:"id"`
-	Items    string `json:"items"`
-	Amount   int64  `json:"amount"`
-	Quantity string `json:"quantity,omitempty"`
-	Unit     string `json:"unit,omitempty"`
-	PaidDate string `json:"paidDate"`
-	PaidBy   string `json:"paidBy"`
+	ID              string `json:"id"`
+	Items           string `json:"items"`
+	Amount          int64  `json:"amount"`
+	Quantity        string `json:"quantity,omitempty"`
+	Unit            string `json:"unit,omitempty"`
+	BaseQuantity    string `json:"baseQuantity,omitempty"`
+	BaseUnit        string `json:"baseUnit,omitempty"`
+	OriginalMessage string `json:"originalMessage,omitempty"`
+	PaidDate        string `json:"paidDate"`
+	PaidBy          string `json:"paidBy"`
 }
