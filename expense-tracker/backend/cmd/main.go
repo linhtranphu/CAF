@@ -63,7 +63,7 @@ func main() {
 	}
 	defer mongoRepo.Close()
 
-	parser := ai.NewMessageParser()
+	parser := ai.NewMessageParser(mongoRepo)
 
 	// Application
 	expenseService := services.NewExpenseService(mongoRepo, parser)
@@ -71,7 +71,7 @@ func main() {
 	// Interface
 	expenseHandler := http.NewExpenseHandler(expenseService)
 	adminHandler := http.NewAdminHandler(expenseService)
-	settingsHandler := http.NewSettingsHandler()
+	settingsHandler := http.NewSettingsHandler(mongoRepo)
 	router := http.NewRouter(expenseHandler, adminHandler, settingsHandler)
 
 	port := os.Getenv("PORT")

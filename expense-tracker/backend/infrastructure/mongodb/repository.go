@@ -15,6 +15,7 @@ import (
 type Repository struct {
 	client     *mongo.Client
 	collection *mongo.Collection
+	settings   *mongo.Collection
 }
 
 type ExpenseDoc struct {
@@ -33,7 +34,6 @@ func NewRepository() (*Repository, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Get MongoDB URI from environment variable
 	mongoURI := os.Getenv("MONGODB_URI")
 	if mongoURI == "" {
 		mongoURI = "mongodb://localhost:27017"
@@ -49,10 +49,12 @@ func NewRepository() (*Repository, error) {
 	}
 
 	collection := client.Database("expense_tracker").Collection("expenses")
+	settings := client.Database("expense_tracker").Collection("settings")
 	
 	return &Repository{
 		client:     client,
 		collection: collection,
+		settings:   settings,
 	}, nil
 }
 
@@ -75,7 +77,6 @@ func (r *Repository) Save(exp *expense.Expense) error {
 }
 
 func (r *Repository) FindByID(id int) (*expense.Expense, error) {
-	// MongoDB uses ObjectID, this is for compatibility
 	return nil, nil
 }
 
@@ -149,7 +150,7 @@ func (r *Repository) GetAll() ([]map[string]interface{}, error) {
 		
 		log.Printf("[MONGO] GetAll - Counter: %d, ObjectID: %s, Items: %s", counter, doc.ID.Hex(), doc.Items)
 		expenses = append(expenses, map[string]interface{}{
-			"no":       doc.ID.Hex(), // Use ObjectID as string
+			"no":       doc.ID.Hex(),
 			"items":    doc.Items,
 			"amount":   doc.Amount,
 			"quantity": doc.Quantity,
@@ -206,7 +207,6 @@ func (r *Repository) Delete(id string) error {
 		return nil
 	}
 
-	// Convert string to ObjectID
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		log.Printf("[MONGO] Invalid ObjectID: %s, error: %v", id, err)
@@ -289,4 +289,47 @@ func (r *Repository) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return r.client.Disconnect(ctx)
+}
+
+func (r *Repository) SaveAPIKey(apiKey string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filter := bson.M{"key": "gemini_api_key"}
+	update := bson.M{"$set": bson.M{
+		"key":        "gemini_api_key",
+		"value":      apiKey,
+		"updated_at": time.Now(),
+	}}
+	opts := options.Update().SetUpsert(true)
+	
+	_, err := r.settings.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		log.Printf("[MONGO] Save API key error: %v", err)
+		return err
+	}
+	
+	log.Printf("[MONGO] API key saved successfully")
+	return nil
+}
+
+func (r *Repository) GetAPIKey() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var result struct {
+		Value string `bson:"value"`
+	}
+	
+	filter := bson.M{"key": "gemini_api_key"}
+	err := r.settings.FindOne(ctx, filter).Decode(&result)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return "", nil
+		}
+		log.Printf("[MONGO] Get API key error: %v", err)
+		return "", err
+	}
+	
+	return result.Value, nil
 }

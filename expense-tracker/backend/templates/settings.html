@@ -81,13 +81,17 @@
                         type="text" 
                         id="gemini_api_key" 
                         name="gemini_api_key" 
-                        placeholder="Nhập Gemini API key của bạn"
                         value="{{.CurrentKey}}"
+                        placeholder="{{if .HasAPIKey}}{{.CurrentKey}}{{else}}Nhập Gemini API key của bạn{{end}}"
                     >
+                    {{if .HasAPIKey}}
+                    <small style="color: #4CAF50;">✅ API key hiện tại đang được sử dụng</small>
+                    {{end}}
                     <small>
                         Lấy API key miễn phí tại: 
                         <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
                     </small>
+                    <div id="test-result" style="display: none; margin-top: 10px;"></div>
                 </div>
 
                 <div class="form-group">
@@ -99,8 +103,8 @@
             <div class="alert alert-info" style="margin-top: 20px;">
                 <strong>ℹ️ Lưu ý:</strong>
                 <ul style="margin-left: 20px; margin-top: 10px;">
-                    <li>API key sẽ được lưu vào file .env</li>
-                    <li>Cần restart server để áp dụng thay đổi</li>
+                    <li>API key sẽ được lưu vào MongoDB</li>
+                    <li>Không cần restart server</li>
                     <li>Không chia sẻ API key với người khác</li>
                 </ul>
             </div>
@@ -110,14 +114,20 @@
     <script>
         async function testAPI() {
             const apiKey = document.getElementById('gemini_api_key').value;
+            const resultDiv = document.getElementById('test-result');
+            
             if (!apiKey) {
-                alert('⚠️ Vui lòng nhập API key trước khi test');
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'alert alert-error';
+                resultDiv.textContent = '⚠️ Vui lòng nhập API key trước khi test';
                 return;
             }
 
             const btn = event.target;
             btn.disabled = true;
             btn.textContent = '⏳ Đang test...';
+            
+            resultDiv.style.display = 'none';
 
             try {
                 const response = await fetch('/settings/test', {
@@ -128,13 +138,18 @@
 
                 const data = await response.json();
                 
+                resultDiv.style.display = 'block';
                 if (data.success) {
-                    alert('✅ API key hoạt động tốt!\n\nTest: ' + data.test_result);
+                    resultDiv.className = 'alert alert-success';
+                    resultDiv.innerHTML = '<strong>✅ API key hoạt động tốt!</strong><br>Test: ' + data.test_result;
                 } else {
-                    alert('❌ API key không hợp lệ!\n\nLỗi: ' + data.error);
+                    resultDiv.className = 'alert alert-error';
+                    resultDiv.innerHTML = '<strong>❌ API key không hợp lệ!</strong><br>Lỗi: ' + data.error;
                 }
             } catch (error) {
-                alert('❌ Lỗi kết nối: ' + error.message);
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'alert alert-error';
+                resultDiv.innerHTML = '<strong>❌ Lỗi kết nối:</strong><br>' + error.message;
             } finally {
                 btn.disabled = false;
                 btn.textContent = '🧪 Test API';

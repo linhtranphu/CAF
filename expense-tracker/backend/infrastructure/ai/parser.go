@@ -11,10 +11,15 @@ import (
 	"google.golang.org/genai"
 )
 
+type APIKeyRepository interface {
+	GetAPIKey() (string, error)
+}
+
 type MessageParser struct {
 	client   *genai.Client
 	cache    map[string]ExpenseData
 	lastCall time.Time
+	repo     APIKeyRepository
 }
 
 type ExpenseData struct {
@@ -45,13 +50,18 @@ func parseDate(dateStr string) time.Time {
 	return time.Now()
 }
 
-func NewMessageParser() *MessageParser {
-	apiKey := os.Getenv("GEMINI_API_KEY")
+func NewMessageParser(repo APIKeyRepository) *MessageParser {
+	apiKey, _ := repo.GetAPIKey()
 	if apiKey == "" {
-		log.Printf("[AI] No Gemini API key found in environment")
+		apiKey = os.Getenv("GEMINI_API_KEY")
+	}
+	
+	if apiKey == "" {
+		log.Printf("[AI] No Gemini API key found")
 		return &MessageParser{
 			client: nil,
 			cache:  make(map[string]ExpenseData),
+			repo:   repo,
 		}
 	}
 	
@@ -65,6 +75,7 @@ func NewMessageParser() *MessageParser {
 		return &MessageParser{
 			client: nil,
 			cache:  make(map[string]ExpenseData),
+			repo:   repo,
 		}
 	}
 	
@@ -72,11 +83,28 @@ func NewMessageParser() *MessageParser {
 	return &MessageParser{
 		client: client,
 		cache:  make(map[string]ExpenseData),
+		repo:   repo,
 	}
 }
 
 func (p *MessageParser) Parse(message string) (string, int64, string, string, time.Time, error) {
 	log.Printf("[AI] Parsing message: %s", message)
+	
+	// Refresh client if needed
+	if p.client == nil {
+		apiKey, _ := p.repo.GetAPIKey()
+		if apiKey != "" {
+			ctx := context.Background()
+			client, err := genai.NewClient(ctx, &genai.ClientConfig{
+				APIKey:  apiKey,
+				Backend: genai.BackendGeminiAPI,
+			})
+			if err == nil {
+				p.client = client
+				log.Printf("[AI] Gemini client created from MongoDB key")
+			}
+		}
+	}
 	
 	if p.client == nil {
 		log.Printf("[AI] No Gemini client available, returning basic parse")
@@ -139,7 +167,7 @@ Examples:
 	ctx := context.Background()
 	result, err := p.client.Models.GenerateContent(
 		ctx,
-		"gemini-2.5-flash-lite",
+		"models/gemini-2.5-flash-lite",
 		genai.Text(prompt),
 		nil,
 	)
