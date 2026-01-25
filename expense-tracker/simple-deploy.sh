@@ -11,20 +11,20 @@ echo "=================================="
 BACKEND_IMAGE="linhtranphu/expense-backend:latest"
 FRONTEND_IMAGE="linhtranphu/expense-frontend:latest"
 
-# Get GEMINI API Key
-echo "🔑 GEMINI API Key Required"
-echo "========================="
-echo "Get your free API key at: https://makersuite.google.com/app/apikey"
+# Get GEMINI API Key (optional)
+echo "🔑 GEMINI API Key (Optional)"
+echo "============================"
+echo "You can configure API key later via Settings page"
+echo "Get your free API key at: https://aistudio.google.com/app/apikey"
 echo ""
+read -p "Enter your GEMINI_API_KEY (press Enter to skip): " GEMINI_API_KEY
 
-while [ -z "$GEMINI_API_KEY" ]; do
-    read -p "Enter your GEMINI_API_KEY: " GEMINI_API_KEY
-    if [ -z "$GEMINI_API_KEY" ]; then
-        echo "⚠️  API Key cannot be empty!"
-    fi
-done
-
-echo "✅ API Key received"
+if [ -z "$GEMINI_API_KEY" ]; then
+    echo "⚠️  Skipping API Key - You can add it later in Settings"
+    GEMINI_API_KEY=""
+else
+    echo "✅ API Key received"
+fi
 
 # Install Docker if needed
 if ! command -v docker &> /dev/null; then
@@ -138,12 +138,19 @@ echo "🌐 Access URLs:"
 echo "Frontend:    http://$PUBLIC_IP:3000"
 echo "Backend API: http://$PUBLIC_IP:8081"
 echo "Admin Panel: http://$PUBLIC_IP:8081/admin"
+echo "Settings:    http://$PUBLIC_IP:8081/settings"
 echo ""
 echo "📋 Next Steps:"
 echo "1. Open http://$PUBLIC_IP:3000 in your browser"
 echo "2. Register a new account"
-echo "3. Add expenses like: 'mua 2 cái bánh 50k'"
-echo "4. View reports at Admin Panel"
+if [ -z "$GEMINI_API_KEY" ]; then
+    echo "3. Configure Gemini API key at Settings page"
+    echo "4. Add expenses like: 'mua 2 cái bánh 50k'"
+    echo "5. View reports at Admin Panel"
+else
+    echo "3. Add expenses like: 'mua 2 cái bánh 50k'"
+    echo "4. View reports at Admin Panel"
+fi
 echo ""
 echo "🛠️  Management Commands:"
 echo "Restart:  docker-compose restart"

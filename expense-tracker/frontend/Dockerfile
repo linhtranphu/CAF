@@ -10,11 +10,14 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
-RUN chmod -R +x /app/node_modules/.bin 
+
+# Fix permissions
+RUN chmod -R 755 node_modules
+
 # Build the application
 RUN npm run build
 

@@ -71,7 +71,8 @@ func main() {
 	// Interface
 	expenseHandler := http.NewExpenseHandler(expenseService)
 	adminHandler := http.NewAdminHandler(expenseService)
-	router := http.NewRouter(expenseHandler, adminHandler)
+	settingsHandler := http.NewSettingsHandler()
+	router := http.NewRouter(expenseHandler, adminHandler, settingsHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

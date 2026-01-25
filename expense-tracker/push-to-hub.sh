@@ -20,21 +20,16 @@ fi
 
 # Get current directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "📁 Project directory: $PROJECT_DIR"
+echo "📁 Project directory: $SCRIPT_DIR"
 
-# Build backend
-echo "🏗️  Building backend..."
-cd "$PROJECT_DIR/backend"
-docker build -t "$BACKEND_IMAGE:$TAG" .
-echo "✅ Backend built: $BACKEND_IMAGE:$TAG"
+# Tag existing images
+echo "🏷️  Tagging images..."
+docker tag expense-tracker-backend:latest "$BACKEND_IMAGE:$TAG"
+echo "✅ Backend tagged: $BACKEND_IMAGE:$TAG"
 
-# Build frontend
-echo "🏗️  Building frontend..."
-cd "$PROJECT_DIR/frontend"
-docker build -t "$FRONTEND_IMAGE:$TAG" .
-echo "✅ Frontend built: $FRONTEND_IMAGE:$TAG"
+docker tag expense-tracker-frontend:latest "$FRONTEND_IMAGE:$TAG"
+echo "✅ Frontend tagged: $FRONTEND_IMAGE:$TAG"
 
 # Push images
 echo "📤 Pushing to Docker Hub..."
@@ -46,7 +41,7 @@ echo "✅ Frontend pushed: $FRONTEND_IMAGE:$TAG"
 
 # Create updated docker-compose.yml
 echo "📝 Creating docker-compose.yml with new images..."
-cd "$PROJECT_DIR"
+cd "$SCRIPT_DIR"
 
 cat > docker-compose.hub.yml << EOF
 version: '3.8'

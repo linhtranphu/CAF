@@ -44,7 +44,7 @@ func getStatusText(code int) string {
 	return "INFO"
 }
 
-func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.Engine {
+func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler, settingsHandler *SettingsHandler) *gin.Engine {
 	r := gin.Default()
 	
 	// Add template functions
@@ -134,6 +134,11 @@ func NewRouter(expenseHandler *ExpenseHandler, adminHandler *AdminHandler) *gin.
 		protected.GET("/admin/deleted", adminHandler.DeletedPage)
 		protected.GET("/admin/export-csv", adminHandler.ExportCSV)
 		protected.DELETE("/admin/expense/:id", adminHandler.DeleteExpense)
+		
+		// Settings routes
+		protected.GET("/settings", settingsHandler.ShowSettings)
+		protected.POST("/settings", settingsHandler.SaveSettings)
+		protected.POST("/settings/test", settingsHandler.TestAPI)
 	}
 
 	// Add OPTIONS handler for all API routes
