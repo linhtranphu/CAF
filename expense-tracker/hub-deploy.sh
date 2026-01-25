@@ -11,21 +11,9 @@ DOCKER_USERNAME="linhtranphu"
 BACKEND_IMAGE="$DOCKER_USERNAME/expense-backend:latest"
 FRONTEND_IMAGE="$DOCKER_USERNAME/expense-frontend:latest"
 
-# Get GEMINI API Key - Always prompt for input
-echo "🔑 GEMINI API Key Setup"
-echo "====================="
-echo "Bạn cần GEMINI API Key để sử dụng tính năng AI parsing"
-echo "Lấy miễn phí tại: https://makersuite.google.com/app/apikey"
-echo ""
-
-while [ -z "$GEMINI_API_KEY" ]; do
-    read -p "Nhập GEMINI_API_KEY của bạn: " GEMINI_API_KEY
-    if [ -z "$GEMINI_API_KEY" ]; then
-        echo "⚠️  API Key không được để trống!"
-    fi
-done
-
-echo "✅ API Key đã nhận"
+# Optional GEMINI API Key
+GEMINI_API_KEY=""
+echo "ℹ️  GEMINI API Key có thể cấu hình sau qua Settings (http://localhost:8081/settings)"
 
 # Install Docker if needed
 if ! command -v docker &> /dev/null; then
@@ -70,7 +58,7 @@ services:
     environment:
       - PORT=8081
       - MONGODB_URI=mongodb://mongodb:27017
-      - GEMINI_API_KEY=$GEMINI_API_KEY
+      - GEMINI_API_KEY=
       - SESSION_SECRET=$(openssl rand -hex 32)
     depends_on:
       - mongodb
